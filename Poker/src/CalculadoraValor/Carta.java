@@ -1,5 +1,8 @@
 package CalculadoraValor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Carta {
 	
 	private char valor;
@@ -38,6 +41,8 @@ public class Carta {
 	public String toString() {
 		return "" + valor + palo;
 	}
+	
 
 }
+
 
