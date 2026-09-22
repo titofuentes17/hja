@@ -5,6 +5,58 @@ public class Evaluador {
 	
 	private Evaluador() {}
 	
+	
+	public static List<String> obtenerDraws(List<Carta> cartas) {
+        List<String> draws = new ArrayList<>();
+
+        // Flush Draw
+        Map<Character, Integer> palos = new HashMap<>();
+        for (Carta c : cartas) {
+            palos.put(c.getPalo(), palos.getOrDefault(c.getPalo(), 0) + 1);
+        }
+        if (palos.containsValue(4)) {
+            draws.add("Draw: Flush");
+        }
+
+        // Straight Draw 
+        Set<Integer> valoresSet = new TreeSet<>();
+        for (Carta c : cartas) {
+            valoresSet.add(c.getValorNumerico());
+            if (c.getValorNumerico() == 14) {
+                valoresSet.add(1); // El As también actúa como 1
+            }
+        }
+
+        List<Integer> vals = new ArrayList<>(valoresSet);
+        boolean hayOpenEnded = false;
+        boolean hayGutshot = false;
+
+        // Comprobamos todas las combinaciones de 4 cartas
+        for (int i = 0; i <= vals.size() - 4; i++) {
+            int v1 = vals.get(i);
+            int v2 = vals.get(i + 1);
+            int v3 = vals.get(i + 2);
+            int v4 = vals.get(i + 3);
+
+            // 4 cartas consecutivas
+            if (v4 - v1 == 3 && v2 - v1 == 1 && v3 - v2 == 1) {
+            	hayOpenEnded = true;
+            } 
+            // 4 cartas contenidas en un rango de 4 posiciones
+            else if (v4 - v1 == 4) {
+                hayGutshot = true;
+            }
+        }
+
+        if (hayOpenEnded) {
+            draws.add("Draw: Straight Open-ended");
+        } else if (hayGutshot) {
+            draws.add("Draw: Straight Gutshot");
+        }
+
+        return draws;
+    }
+	
 	public static String obtenerMejorManoTexto(List<Carta> cartas) {
 		
 		Utils.ordenarCartas(cartas);
@@ -144,9 +196,6 @@ public class Evaluador {
 	    }
 	    return sb.toString();
 	}
-	
-	
-	
 
 }
 

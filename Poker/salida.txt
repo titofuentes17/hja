@@ -1,0 +1,25 @@
+AhQhAcJhTh
+Best hand: Pair of Aces (AhAc)
+Draw: Flush
+Draw: Straight Gutshot
+
+AhAc2hAsAd
+Best hand: Four of a Kind (Aces) (AhAcAsAd)
+
+2h5c7s9dTd
+Best hand: High Card Ten (Td)
+
+2h5h3h7c4h
+Best hand: High Card 7 (7c)
+Draw: Flush
+Draw: Straight Open-ended
+
+2cAhAd2sAs
+Best hand: Aces full of 2s (AhAdAs2c2s)
+
+8sKh8cTd8h
+Best hand: Three of a kind (8s) (8s8c8h)
+
+8s5hKhTd8c
+Best hand: Pair of 8s (8s8c)
+
