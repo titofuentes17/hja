@@ -132,6 +132,428 @@ public class Evaluador {
 	}
 	
 	
+	//Sobrecarga para el apartado 2
+	public static String obtenerMejorManoTexto(
+	        List<Carta> cartas,
+	        boolean usarWith) {
+
+	    // Utilizamos el método que ya tenemos
+	    String resultado = obtenerMejorManoTexto(cartas);
+
+	    if (usarWith) {
+
+	        int posicion = resultado.lastIndexOf(" (");
+
+	        if (posicion != -1) {
+	            resultado = resultado.substring(0, posicion);
+	        }
+
+	        resultado += " with " + Utils.cartasAString(cartas);
+	    }
+
+	    return resultado;
+	}
+	
+	
+	//Evaluamos la mano y le ponemos un numero a la mano y devolvemos las cartas
+	public static ValorMano evaluarMano(List<Carta> cartas) {
+
+	    // Ordenamos las cartas de mayor a menor
+	    Utils.ordenarCartas(cartas);
+
+	    // Contamos cuántas cartas hay de cada valor
+	    Map<Character, Integer> valores = new HashMap<>();
+
+	    for (Carta c : cartas) {
+	        valores.put(c.getValor(),
+	                valores.getOrDefault(c.getValor(), 0) + 1);
+	    }
+
+	    // Contamos cuántas cartas hay de cada palo
+	    Map<Character, Integer> palos = new HashMap<>();
+
+	    for (Carta c : cartas) {
+	        palos.put(c.getPalo(),
+	                palos.getOrDefault(c.getPalo(), 0) + 1);
+	    }
+
+	    boolean esColor = palos.containsValue(5);
+	    boolean esEscalera = comprobarEscalera(cartas);
+
+
+	    // Escalera de color / Royal Flush
+	    
+	    if (esColor && esEscalera) {
+
+	        int valorEscalera =
+	                obtenerValorEscalera(cartas);
+
+	        List<Integer> desempate =
+	                new ArrayList<>();
+
+	        desempate.add(valorEscalera);
+
+
+	        // Royal Flush
+	        if (valorEscalera == 14) {
+
+	            return new ValorMano(
+	                    10,
+	                    cartas,
+	                    desempate
+	            );
+	        }
+
+
+	        // Escalera de Color
+	        return new ValorMano(
+	                9,
+	                cartas,
+	                desempate
+	        );
+	    }
+
+
+	    // POKER
+	    
+	    if (valores.containsValue(4)) {
+
+	        int valorPoker =
+	                buscarValorConCantidad(valores, 4);
+
+	        List<Integer> desempate = new ArrayList<>();
+
+	        // Primero importa el valor del póker
+	        desempate.add(valorPoker);
+
+	        // Después el kicker
+	        desempate.addAll(
+	                obtenerOtrosValores(cartas, valorPoker)
+	        );
+
+	        return new ValorMano(
+	                8,
+	                cartas,
+	                desempate
+	        );
+	    }
+
+
+	    // FULL 
+	    
+	    if (valores.containsValue(3)
+	            && valores.containsValue(2)) {
+
+	        int valorTrio =
+	                buscarValorConCantidad(valores, 3);
+
+	        int valorPareja =
+	                buscarValorConCantidad(valores, 2);
+
+	        List<Integer> desempate = new ArrayList<>();
+
+	        desempate.add(valorTrio);
+	        desempate.add(valorPareja);
+
+	        return new ValorMano(
+	                7,
+	                cartas,
+	                desempate
+	        );
+	    }
+
+
+	    // COLOR
+	    
+	    if (esColor) {
+
+	        List<Integer> desempate =
+	                obtenerValoresOrdenados(cartas);
+
+	        return new ValorMano(
+	                6,
+	                cartas,
+	                desempate
+	        );
+	    }
+
+
+	    // ESCALERA
+	    
+	    if (esEscalera) {
+
+	        int valorEscalera =
+	                obtenerValorEscalera(cartas);
+
+	        List<Integer> desempate =
+	                new ArrayList<>();
+
+	        desempate.add(valorEscalera);
+
+	        return new ValorMano(
+	                5,
+	                cartas,
+	                desempate
+	        );
+	    }
+
+
+	    // TRIO
+	    
+	    if (valores.containsValue(3)) {
+
+	        int valorTrio =
+	                buscarValorConCantidad(valores, 3);
+
+	        List<Integer> desempate = new ArrayList<>();
+
+	        desempate.add(valorTrio);
+
+	        // Añadimos después los kickers
+	        desempate.addAll(
+	                obtenerOtrosValores(cartas, valorTrio)
+	        );
+
+	        return new ValorMano(
+	                4,
+	                cartas,
+	                desempate
+	        );
+	    }
+
+
+	    // Contamos las parejas
+	    int numParejas = 0;
+
+	    for (int cantidad : valores.values()) {
+	        if (cantidad == 2) {
+	            numParejas++;
+	        }
+	    }
+
+
+	    // DOBLE PAREJA
+	    
+	    if (numParejas == 2) {
+
+	        List<Integer> parejas = new ArrayList<>();
+	        int kicker = 0;
+
+	        for (Carta carta : cartas) {
+
+	            int cantidad =
+	                    valores.get(carta.getValor());
+
+	            if (cantidad == 2) {
+
+	                int valor =
+	                        carta.getValorNumerico();
+
+	                if (!parejas.contains(valor)) {
+	                    parejas.add(valor);
+	                }
+
+	            } else {
+
+	                kicker = carta.getValorNumerico();
+	            }
+	        }
+
+	        // Pareja más alta primero
+	        parejas.sort(Collections.reverseOrder());
+
+	        List<Integer> desempate = new ArrayList<>();
+
+	        desempate.add(parejas.get(0));
+	        desempate.add(parejas.get(1));
+	        desempate.add(kicker);
+
+	        return new ValorMano(
+	                3,
+	                cartas,
+	                desempate
+	        );
+	    }
+
+
+	    // PAREJA
+	    
+	    if (numParejas == 1) {
+
+	        int valorPareja =
+	                buscarValorConCantidad(valores, 2);
+
+	        List<Integer> desempate = new ArrayList<>();
+
+	        // Primero el valor de la pareja
+	        desempate.add(valorPareja);
+
+	        // Después los tres kickers
+	        desempate.addAll(
+	                obtenerOtrosValores(cartas, valorPareja)
+	        );
+
+	        return new ValorMano(
+	                2,
+	                cartas,
+	                desempate
+	        );
+	    }
+	    
+	 
+	    // CARTA ALTA
+	    
+	    List<Integer> desempate =
+	            obtenerValoresOrdenados(cartas);
+
+	    return new ValorMano(
+	            1,
+	            cartas,
+	            desempate
+	    );
+	}
+	
+	//ObtenerDraws para el apartado 2
+	public static List<String> obtenerDrawsApartado2(
+	        List<Carta> disponibles,
+	        int numComunes) {
+
+	    List<String> resultado = new ArrayList<>();
+
+
+	    // Con 5 cartas comunitarias ya no hay draws
+	    if (numComunes == 5) {
+	        return resultado;
+	    }
+
+
+	    // Si tenemos 5 cartas disponibles,
+	    // podemos utilizar directamente el método del apartado 1
+	    if (disponibles.size() == 5) {
+
+	        resultado.addAll(
+	                obtenerDraws(disponibles)
+	        );
+
+	        return resultado;
+	    }
+
+
+	    // Si tenemos 6 cartas disponibles,
+	    // generamos todas las combinaciones de 5
+	    List<List<Carta>> combinaciones =
+	            Utils.generarCombinaciones5(disponibles);
+
+
+	    // Buscamos los draws de cada combinación
+	    for (List<Carta> combinacion : combinaciones) {
+
+	        List<String> draws =
+	                obtenerDraws(combinacion);
+
+	        for (String draw : draws) {
+
+	            // Evitamos añadir el mismo draw varias veces
+	            if (!resultado.contains(draw)) {
+	                resultado.add(draw);
+	            }
+	        }
+	    }
+
+	    
+	 // Si tenemos un proyecto de escalera abierta,
+	 // no mostramos también Gutshot
+	 if (resultado.contains("Draw: Straight Open-ended")) {
+	     resultado.remove("Draw: Straight Gutshot");
+	 }
+	 
+	 
+	    return resultado;
+	}
+	
+	
+	
+	
+	
+	//Ordena la mano 
+	private static List<Integer> obtenerValoresOrdenados(List<Carta> cartas) {
+
+	    List<Integer> valores = new ArrayList<>();
+
+	    for (Carta carta : cartas) {
+	        valores.add(carta.getValorNumerico());
+	    }
+
+	    // Ordenamos de mayor a menor
+	    valores.sort(Collections.reverseOrder());
+
+	    return valores;
+	}
+	
+	//El palo no importa
+	
+	private static int buscarValorConCantidad(
+	        Map<Character, Integer> valores,
+	        int cantidad) {
+
+	    for (Map.Entry<Character, Integer> entrada : valores.entrySet()) {
+
+	        if (entrada.getValue() == cantidad) {
+
+	            Carta carta = new Carta(
+	                    entrada.getKey(),
+	                    'h'
+	            );
+
+	            return carta.getValorNumerico();
+	        }
+	    }
+
+	    return -1;
+	}
+	
+	//obtenemos valores que no pertenecen a cierto grupo
+	private static List<Integer> obtenerOtrosValores(
+	        List<Carta> cartas,
+	        int valorExcluido) {
+
+	    List<Integer> resultado = new ArrayList<>();
+
+	    for (Carta carta : cartas) {
+
+	        if (carta.getValorNumerico() != valorExcluido) {
+	            resultado.add(carta.getValorNumerico());
+	        }
+	    }
+
+	    resultado.sort(Collections.reverseOrder());
+
+	    return resultado;
+	}
+	
+	private static int obtenerValorEscalera(List<Carta> cartas) {
+
+	    List<Integer> valores =
+	            obtenerValoresOrdenados(cartas);
+
+	    // Caso especial:
+	    // A 5 4 3 2
+	    // El As actúa como 1, por lo que la escalera
+	    // tiene valor 5 y no 14
+	    if (valores.get(0) == 14
+	            && valores.get(1) == 5
+	            && valores.get(2) == 4
+	            && valores.get(3) == 3
+	            && valores.get(4) == 2) {
+
+	        return 5;
+	    }
+
+	    // En cualquier otra escalera,
+	    // devolvemos la carta más alta
+	    return valores.get(0);
+	}
+	
 	private static boolean comprobarEscalera(List<Carta> cartas) {
 	    Set<Integer> valoresSet = new TreeSet<>();
 	    for (Carta c : cartas) {

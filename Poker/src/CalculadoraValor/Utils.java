@@ -57,5 +57,39 @@ public class Utils {
 	        }
 	    }
 	}
+	
+	
+	//Genera todas las posibles combinaciones de 5 cartas dadas 5, 6 o 7 cartas
+	public static List<List<Carta>> generarCombinaciones5(List<Carta> cartas) {
+
+	    // Aquí guardaremos todas las combinaciones de 5 cartas
+	    List<List<Carta>> combinaciones = new ArrayList<>();
+
+	    // Elegimos 5 posiciones distintas
+	    for (int i = 0; i < cartas.size() - 4; i++) {
+	        for (int j = i + 1; j < cartas.size() - 3; j++) {
+	            for (int k = j + 1; k < cartas.size() - 2; k++) {
+	                for (int l = k + 1; l < cartas.size() - 1; l++) {
+	                    for (int m = l + 1; m < cartas.size(); m++) {
+
+	                        // Creamos una combinación de 5 cartas
+	                        List<Carta> combinacion = new ArrayList<>();
+
+	                        combinacion.add(cartas.get(i));
+	                        combinacion.add(cartas.get(j));
+	                        combinacion.add(cartas.get(k));
+	                        combinacion.add(cartas.get(l));
+	                        combinacion.add(cartas.get(m));
+
+	                        // La guardamos
+	                        combinaciones.add(combinacion);
+	                    }
+	                }
+	            }
+	        }
+	    }
+
+	    return combinaciones;
+	}
 
 }
