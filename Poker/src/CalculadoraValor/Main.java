@@ -40,95 +40,20 @@ public class Main {
             } 
         
             else if (apartado == 2) {
-
-                // Recorremos cada mano del fichero de entrada
                 for (String linea : lineasEntrada) {
-
-                    // Separamos:
-                    // cartasJugador ; numeroComunes ; cartasComunes
+                    // Formato: cartasJugador;numComunes;cartasComunes
                     String[] partes = linea.split(";");
+                    List<Carta> propias = Utils.parsearCartas(partes[0]);
+                    List<Carta> mesa = Utils.parsearCartas(partes[2]);
 
-                    // Guardamos cada parte
-                    String cartasJugador = partes[0];
-                    int numComunes = Integer.parseInt(partes[1]);
-                    String cartasComunes = partes[2];
+                    // El jugador se encarga de calcular su mejor mano y sus draws
+                    Jugador jugador = new Jugador(propias, mesa);
 
-                    // Convertimos los Strings en listas de Carta
-                    List<Carta> jugador =
-                            Utils.parsearCartas(cartasJugador);
-
-                    List<Carta> comunes =
-                            Utils.parsearCartas(cartasComunes);
-
-
-                    // Creamos una lista con todas las cartas disponibles
-                    List<Carta> disponibles = new ArrayList<>();
-
-                    // Añadimos las dos cartas del jugador
-                    disponibles.addAll(jugador);
-
-                    // Añadimos las cartas de la mesa
-                    disponibles.addAll(comunes);
-
-
-                    // Generamos todas las combinaciones posibles de 5 cartas
-                    List<List<Carta>> combinaciones =
-                            Utils.generarCombinaciones5(disponibles);
-
-
-                    // Buscamos la mejor combinación
-                    ValorMano mejorMano = null;
-
-                    for (List<Carta> combinacion : combinaciones) {
-
-                        ValorMano manoActual =
-                                Evaluador.evaluarMano(combinacion);
-
-                        if (mejorMano == null) {
-
-                            mejorMano = manoActual;
-
-                        } else if (manoActual.compararCon(mejorMano) > 0) {
-
-                            mejorMano = manoActual;
-                        }
-                    }
-
-
-                    // Buscamos los posibles draws
-                    List<String> draws =
-                            Evaluador.obtenerDrawsApartado2(
-                                    disponibles,
-                                    numComunes
-                            );
-
-
-                    // -----------------------------------------
-                    // GUARDAMOS EL RESULTADO EN EL FICHERO
-                    // -----------------------------------------
-
-                    // Añadimos la línea original
                     lineasSalida.add(linea);
-
-
-                    // Añadimos la mejor mano
-                    lineasSalida.add(
-                            "- Best hand: "
-                            + Evaluador.obtenerMejorManoTexto(
-                                    mejorMano.getCartas(),
-                                    true
-                            )
-                    );
-
-
-                    // Añadimos todos los draws encontrados
-                    for (String draw : draws) {
-
-                        lineasSalida.add(
-                                "- " + draw
-                        );
+                    lineasSalida.add("- Best hand: " + jugador.getMejorManoTexto());
+                    for (String draw : jugador.getDraws()) {
+                        lineasSalida.add("- " + draw);
                     }
-
 
                     // Línea en blanco entre manos
                     lineasSalida.add("");

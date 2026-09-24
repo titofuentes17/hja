@@ -1,25 +1,25 @@
-AhQh;3;AcJhTh
-- Best hand: Pair of Aces with AhAcQhJhTh
-- Draw: Flush
-- Draw: Straight Gutshot
+AhQhAcJhTh
+Best hand: Pair of Aces (AhAc)
+Draw: Flush
+Draw: Straight Gutshot
 
-AhAc;4;2hAs2cAd
-- Best hand: Four of a Kind (Aces) with AhAcAsAd2h
+AhAc2hAsAd
+Best hand: Four of a Kind (Aces) (AhAcAsAd)
 
-2h5c;5;7s4h9dTdKc
-- Best hand: High Card King with KcTd9d7s5c
+2h5c7s9dTd
+Best hand: High Card Ten (Td)
 
-2hQd;4;4h3h7c5h
-- Best hand: High Card Queen with Qd7c5h4h3h
-- Draw: Flush
-- Draw: Straight Open-ended
+2h5h3h7c4h
+Best hand: High Card 7 (7c)
+Draw: Flush
+Draw: Straight Open-ended
 
-2cKd;4;Ah2sAdAs
-- Best hand: Aces full of 2s with AhAdAs2c2s
+2cAhAd2sAs
+Best hand: Aces full of 2s (AhAdAs2c2s)
 
-8sKh;5;Td8c3h8hAc
-- Best hand: Three of a kind (8s) with AcKh8s8c8h
+8sKh8cTd8h
+Best hand: Three of a kind (8s) (8s8c8h)
 
-AhAc;5;As2s3h4dJd
-- Best hand: Three of a kind (Aces) with AhAcAsJd4d
+8s5hKhTd8c
+Best hand: Pair of 8s (8s8c)
 
