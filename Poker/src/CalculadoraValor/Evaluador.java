@@ -137,18 +137,23 @@ public class Evaluador {
 	        List<Carta> cartas,
 	        boolean usarWith) {
 
-	    // Utilizamos el método que ya tenemos
+	    if (usarWith) {
+	        return obtenerNombreMano(cartas) + " with " + Utils.cartasAString(cartas);
+	    }
+
+	    return obtenerMejorManoTexto(cartas);
+	}
+
+
+	//Nombre de la jugada sin las cartas, p.ej. "Pair of Aces" (apartados 2 y 3)
+	public static String obtenerNombreMano(List<Carta> cartas) {
+
 	    String resultado = obtenerMejorManoTexto(cartas);
 
-	    if (usarWith) {
-
-	        int posicion = resultado.lastIndexOf(" (");
-
-	        if (posicion != -1) {
-	            resultado = resultado.substring(0, posicion);
-	        }
-
-	        resultado += " with " + Utils.cartasAString(cartas);
+	    // Quitamos el último paréntesis, que es el de las cartas
+	    int posicion = resultado.lastIndexOf(" (");
+	    if (posicion != -1) {
+	        resultado = resultado.substring(0, posicion);
 	    }
 
 	    return resultado;

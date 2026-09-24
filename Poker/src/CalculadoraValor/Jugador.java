@@ -3,8 +3,9 @@ package CalculadoraValor;
 import java.util.ArrayList;
 import java.util.List;
 
-// Representa a un jugador con sus cartas propias y las cartas comunes de la mesa
-public class Jugador {
+// Representa a un jugador con sus cartas propias y las cartas comunes de la mesa.
+// Es Comparable para poder ordenar jugadores según su mejor mano (apartado 3)
+public class Jugador implements Comparable<Jugador> {
 
 	private String id;             // Identificador del jugador (J1, J2...). Puede ser null
 	private List<Carta> propias;    // Cartas propias del jugador
@@ -73,6 +74,18 @@ public class Jugador {
 	// Texto de la mejor mano, p.ej. "Pair of Aces with AhAcQhJhTh"
 	public String getMejorManoTexto() {
 		return Evaluador.obtenerMejorManoTexto(getMejorMano().getCartas(), true);
+	}
+
+	// Solo el nombre de la jugada, p.ej. "Pair of Aces"
+	public String getNombreMano() {
+		return Evaluador.obtenerNombreMano(getMejorMano().getCartas());
+	}
+
+
+	// Un jugador es "mayor" que otro si su mejor mano es mejor
+	@Override
+	public int compareTo(Jugador otro) {
+		return getMejorMano().compararCon(otro.getMejorMano());
 	}
 
 }

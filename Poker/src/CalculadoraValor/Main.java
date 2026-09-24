@@ -2,6 +2,7 @@ package CalculadoraValor;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -72,9 +73,35 @@ public class Main {
             
             
             else if (apartado == 3) {
-            	
-            	
-            	
+                for (String linea : lineasEntrada) {
+                    // Formato: N;J1CartasJug1;...;JNCartasJugN;CartasComunes
+                    String[] partes = linea.split(";");
+                    int numJugadores = Integer.parseInt(partes[0]);
+                    List<Carta> mesa = Utils.parsearCartas(partes[partes.length - 1]);
+
+                    // Cada jugador: el id es todo menos las 4 últimas letras (sus 2 cartas)
+                    List<Jugador> jugadores = new ArrayList<>();
+                    for (int i = 1; i <= numJugadores; i++) {
+                        String parte = partes[i];
+                        String id = parte.substring(0, parte.length() - 4);
+                        List<Carta> propias = Utils.parsearCartas(parte.substring(parte.length() - 4));
+                        jugadores.add(new Jugador(id, propias, mesa));
+                    }
+
+                    // Ordenamos de mejor a peor mano. En caso de empate se
+                    // mantiene el orden de entrada (sort es estable)
+                    jugadores.sort(Collections.reverseOrder());
+
+                    lineasSalida.add(linea);
+                    for (Jugador j : jugadores) {
+                        lineasSalida.add(j.getId() + ": "
+                                + Utils.cartasAString(j.getMejorMano().getCartas())
+                                + " (" + j.getNombreMano() + ")");
+                    }
+
+                    // Línea en blanco entre manos
+                    lineasSalida.add("");
+                }
             }
             
             else if (apartado == 4) {
