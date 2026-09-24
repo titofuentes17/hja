@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class Main {
 
     public static void main(String[] args) {
@@ -93,7 +94,9 @@ public class Main {
                             mejorMano = manoActual;
                         }
                     }
+                    
 
+                    
 
                     // Buscamos los posibles draws
                     List<String> draws =
@@ -133,10 +136,43 @@ public class Main {
                     // Línea en blanco entre manos
                     lineasSalida.add("");
                 }
+                
+                
+                
+                
+                
+                
+                
+                
+                
             }
             
+            
+            else if (apartado == 3) {
+            	
+            	
+            	
+            }
+            
+            else if (apartado == 4) {
+            	System.out.println("El apartado " + apartado + " aún no está implementado.");
+                return;
+            	
+            	
+            }
+            
+            
+            
+            else if (apartado == 5) {
+            	System.out.println("El apartado " + apartado + " aún no está implementado.");
+                return;
+            	
+            	
+            }
+            
+            
             else {
-                System.out.println("El apartado " + apartado + " aún no está implementado.");
+                System.out.println("El aparatado no existe");
                 return;
             }
 
