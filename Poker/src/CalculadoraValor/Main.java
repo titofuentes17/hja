@@ -50,66 +50,6 @@ public class Main {
                     // El jugador se encarga de calcular su mejor mano y sus draws
                     Jugador jugador = new Jugador(propias, mesa);
 
-<<<<<<< HEAD
-=======
-                    // Convertimos los Strings en listas de Carta
-                    List<Carta> jugador =
-                            Utils.parsearCartas(cartasJugador);
-
-                    List<Carta> comunes =
-                            Utils.parsearCartas(cartasComunes);
-
-
-                    // Creamos una lista con todas las cartas disponibles
-                    List<Carta> disponibles = new ArrayList<>();
-
-                    // Añadimos las dos cartas del jugador
-                    disponibles.addAll(jugador);
-
-                    // Añadimos las cartas de la mesa
-                    disponibles.addAll(comunes);
-
-
-                    // Generamos todas las combinaciones posibles de 5 cartas
-                    List<List<Carta>> combinaciones =
-                            Utils.generarCombinaciones5(disponibles);
-
-
-                    // Buscamos la mejor combinación
-                    ValorMano mejorMano = null;
-
-                    for (List<Carta> combinacion : combinaciones) {
-
-                        ValorMano manoActual =
-                                Evaluador.evaluarMano(combinacion);
-
-                        if (mejorMano == null) {
-
-                            mejorMano = manoActual;
-
-                        } else if (manoActual.compararCon(mejorMano) > 0) {
-
-                            mejorMano = manoActual;
-                        }
-                    }
-                    
-
-                    
-
-                    // Buscamos los posibles draws
-                    List<String> draws =
-                            Evaluador.obtenerDrawsApartado2(
-                                    disponibles,
-                                    numComunes
-                            );
-
-
-                    // -----------------------------------------
-                    // GUARDAMOS EL RESULTADO EN EL FICHERO
-                    // -----------------------------------------
-
-                    // Añadimos la línea original
->>>>>>> 83a34e4dad2ac9984a857a68af1c313dfad25178
                     lineasSalida.add(linea);
                     lineasSalida.add("- Best hand: " + jugador.getMejorManoTexto());
                     for (String draw : jugador.getDraws()) {
