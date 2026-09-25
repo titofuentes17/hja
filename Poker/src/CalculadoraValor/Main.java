@@ -30,11 +30,11 @@ public class Main {
                     List<Carta> cartas = Utils.parsearCartas(linea);
                     
                     String mejorMano = Evaluador.obtenerMejorManoTexto(cartas);
-                    lineasSalida.add("Best hand: " + mejorMano);
+                    lineasSalida.add("- Best hand: " + mejorMano);
                     
                     List<String> draws = Evaluador.obtenerDraws(cartas);
                     for (String draw : draws) {
-                        lineasSalida.add(draw);
+                        lineasSalida.add("- " + draw);
                     }
                     
                     lineasSalida.add("");
