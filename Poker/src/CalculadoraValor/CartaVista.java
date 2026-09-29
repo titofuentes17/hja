@@ -3,22 +3,50 @@ package CalculadoraValor;
 import javafx.animation.RotateTransition;
 import javafx.animation.TranslateTransition;
 import javafx.geometry.Pos;
-import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
 
 
 public class CartaVista extends StackPane {
 
-    private Rectangle fondo;
-    private Label contenido;
+    // =========================================================
+    // TAMAÑO DE LA CARTA
+    // =========================================================
 
-    // Carta que se está mostrando actualmente.
+    private static final double ANCHO = 65;
+    private static final double ALTO = 90;
+
+
+    // =========================================================
+    // ELEMENTOS VISUALES
+    // =========================================================
+
+    /*
+     * Este rectángulo sirve para:
+     *
+     * - mostrar el reverso de la carta
+     * - poner el borde negro
+     * - poner el borde dorado al destacar
+     */
+    private Rectangle fondo;
+
+
+    /*
+     * Aquí se mostrará el PNG de la carta.
+     */
+    private ImageView imagenCarta;
+
+
+    /*
+     * Carta que se está mostrando actualmente.
+     *
+     * null = estamos mostrando el reverso.
+     */
     private Carta cartaActual;
 
 
@@ -28,31 +56,69 @@ public class CartaVista extends StackPane {
 
     public CartaVista() {
 
-        fondo = new Rectangle(65, 90);
+        setAlignment(
+                Pos.CENTER
+        );
+
+
+        // =====================================================
+        // FONDO / BORDE
+        // =====================================================
+
+        fondo =
+                new Rectangle(
+                        ANCHO,
+                        ALTO
+                );
+
 
         fondo.setArcWidth(12);
         fondo.setArcHeight(12);
 
 
-        contenido = new Label();
+        // =====================================================
+        // IMAGEN
+        // =====================================================
 
-        contenido.setFont(
-                Font.font(
-                        "Arial",
-                        FontWeight.BOLD,
-                        20
-                )
+        imagenCarta =
+                new ImageView();
+
+
+        imagenCarta.setFitWidth(
+                ANCHO - 4
         );
 
 
-        setAlignment(Pos.CENTER);
+        imagenCarta.setFitHeight(
+                ALTO - 4
+        );
+
+
+        /*
+         * false porque queremos que todas
+         * tengan exactamente el mismo tamaño.
+         */
+        imagenCarta.setPreserveRatio(
+                false
+        );
+
+
+        imagenCarta.setSmooth(
+                true
+        );
+
+
+        // =====================================================
+        // AÑADIR ELEMENTOS
+        // =====================================================
 
         getChildren().addAll(
                 fondo,
-                contenido
+                imagenCarta
         );
 
 
+        // Empezamos mostrando el reverso.
         mostrarReverso();
     }
 
@@ -65,12 +131,36 @@ public class CartaVista extends StackPane {
 
         cartaActual = null;
 
-        fondo.setFill(Color.DARKBLUE);
-        fondo.setStroke(Color.WHITE);
-        fondo.setStrokeWidth(2);
 
-        contenido.setText("♠");
-        contenido.setTextFill(Color.WHITE);
+        /*
+         * Ocultamos el PNG.
+         */
+        imagenCarta.setImage(
+                null
+        );
+
+
+        imagenCarta.setVisible(
+                false
+        );
+
+
+        /*
+         * Reverso azul.
+         */
+        fondo.setFill(
+                Color.web("#163A70")
+        );
+
+
+        fondo.setStroke(
+                Color.WHITE
+        );
+
+
+        fondo.setStrokeWidth(
+                2
+        );
     }
 
 
@@ -78,71 +168,201 @@ public class CartaVista extends StackPane {
     // MOSTRAR CARTA
     // =========================================================
 
-    public void mostrarCarta(Carta carta) {
-
-        cartaActual = carta;
-
-        fondo.setFill(Color.WHITE);
-        fondo.setStroke(Color.BLACK);
-        fondo.setStrokeWidth(2);
+    public void mostrarCarta(
+            Carta carta) {
 
 
-        String simboloPalo =
-                obtenerSimboloPalo(
-                        carta.getPalo()
+        cartaActual =
+                carta;
+
+
+        String ruta =
+                obtenerRutaImagen(
+                        carta
                 );
 
 
-        String valorVisual;
+        /*
+         * Buscamos la imagen dentro del proyecto.
+         *
+         * Ejemplo:
+         *
+         * /CalculadoraValor/cartas/ace_of_hearts.png
+         */
+        var recurso =
+                getClass()
+                        .getResource(
+                                ruta
+                        );
 
 
-        if (carta.getValor() == 'T') {
+        if (recurso == null) {
 
-            valorVisual = "10";
+            /*
+             * Si esto ocurre significa que la
+             * imagen no está donde esperamos.
+             */
+            System.err.println(
+                    "No se encontró la imagen: "
+                            + ruta
+            );
 
-        } else {
 
-            valorVisual =
-                    String.valueOf(
-                            carta.getValor()
-                    );
+            mostrarReverso();
+
+            return;
         }
 
 
-        contenido.setText(
-                valorVisual
-                        + "\n"
-                        + simboloPalo
+        Image imagen =
+                new Image(
+                        recurso.toExternalForm()
+                );
+
+
+        imagenCarta.setImage(
+                imagen
         );
 
 
-        if (carta.getPalo() == 'h'
-                || carta.getPalo() == 'd') {
+        imagenCarta.setVisible(
+                true
+        );
 
-            contenido.setTextFill(
-                    Color.RED
-            );
 
-        } else {
+        /*
+         * Fondo blanco por si el PNG
+         * tiene alguna transparencia.
+         */
+        fondo.setFill(
+                Color.WHITE
+        );
 
-            contenido.setTextFill(
-                    Color.BLACK
-            );
-        }
+
+        fondo.setStroke(
+                Color.BLACK
+        );
+
+
+        fondo.setStrokeWidth(
+                2
+        );
     }
 
 
     // =========================================================
-    // VOLTEAR
+    // CONVERTIR CARTA -> RUTA PNG
     // =========================================================
 
-    public void voltear(Carta carta) {
-
-        setRotationAxis(
-                Rotate.Y_AXIS
-        );
+    private String obtenerRutaImagen(
+            Carta carta) {
 
 
+        String valor =
+                convertirValor(
+                        carta.getValor()
+                );
+
+
+        String palo =
+                convertirPalo(
+                        carta.getPalo()
+                );
+
+
+        /*
+         * Ejemplos:
+         *
+         * Ah -> ace_of_hearts.png
+         * Kd -> king_of_diamonds.png
+         * Qs -> queen_of_spades.png
+         * Jc -> jack_of_clubs.png
+         * Th -> 10_of_hearts.png
+         * 8s -> 8_of_spades.png
+         */
+
+        return "/CalculadoraValor/cartas/"
+                + valor
+                + "_of_"
+                + palo
+                + ".png";
+    }
+
+
+    // =========================================================
+    // CONVERTIR VALOR
+    // =========================================================
+
+    private String convertirValor(
+            char valor) {
+
+
+        return switch (valor) {
+
+            case 'A' ->
+                    "ace";
+
+            case 'K' ->
+                    "king";
+
+            case 'Q' ->
+                    "queen";
+
+            case 'J' ->
+                    "jack";
+
+            case 'T' ->
+                    "10";
+
+            default ->
+                    String.valueOf(
+                            valor
+                    );
+        };
+    }
+
+
+    // =========================================================
+    // CONVERTIR PALO
+    // =========================================================
+
+    private String convertirPalo(
+            char palo) {
+
+
+        return switch (palo) {
+
+            case 'h' ->
+                    "hearts";
+
+            case 'd' ->
+                    "diamonds";
+
+            case 'c' ->
+                    "clubs";
+
+            case 's' ->
+                    "spades";
+
+            default ->
+                    "";
+        };
+    }
+
+
+    // =========================================================
+    // VOLTEAR CARTA
+    // =========================================================
+
+    public void voltear(
+            Carta carta) {
+
+
+        /*
+         * Primera mitad:
+         *
+         * la carta gira de 0º a 90º.
+         */
         RotateTransition primeraMitad =
                 new RotateTransition(
                         Duration.millis(200),
@@ -150,29 +370,68 @@ public class CartaVista extends StackPane {
                 );
 
 
-        primeraMitad.setFromAngle(0);
-        primeraMitad.setToAngle(90);
+        primeraMitad.setAxis(
+                Rotate.Y_AXIS
+        );
 
 
-        primeraMitad.setOnFinished(evento -> {
-
-            mostrarCarta(carta);
-
-            setRotate(-90);
+        primeraMitad.setFromAngle(
+                0
+        );
 
 
-            RotateTransition segundaMitad =
-                    new RotateTransition(
-                            Duration.millis(200),
-                            this
+        primeraMitad.setToAngle(
+                90
+        );
+
+
+        // =====================================================
+        // AL LLEGAR A 90º CAMBIAMOS LA IMAGEN
+        // =====================================================
+
+        primeraMitad.setOnFinished(
+                evento -> {
+
+
+                    mostrarCarta(
+                            carta
                     );
 
 
-            segundaMitad.setFromAngle(-90);
-            segundaMitad.setToAngle(0);
+                    /*
+                     * Empezamos la segunda mitad
+                     * desde -90º.
+                     */
+                    setRotate(
+                            -90
+                    );
 
-            segundaMitad.play();
-        });
+
+                    RotateTransition segundaMitad =
+                            new RotateTransition(
+                                    Duration.millis(200),
+                                    this
+                            );
+
+
+                    segundaMitad.setAxis(
+                            Rotate.Y_AXIS
+                    );
+
+
+                    segundaMitad.setFromAngle(
+                            -90
+                    );
+
+
+                    segundaMitad.setToAngle(
+                            0
+                    );
+
+
+                    segundaMitad.play();
+                }
+        );
 
 
         primeraMitad.play();
@@ -180,7 +439,7 @@ public class CartaVista extends StackPane {
 
 
     // =========================================================
-    // REPARTIR DESDE UNA POSICIÓN
+    // REPARTIR DESDE EL MAZO
     // =========================================================
 
     public void repartirDesde(
@@ -188,16 +447,48 @@ public class CartaVista extends StackPane {
             double origenX,
             double origenY) {
 
-        setVisible(true);
 
+        /*
+         * Hacemos visible la carta.
+         */
+        setVisible(
+                true
+        );
+
+
+        /*
+         * Primero mostramos el reverso.
+         */
         mostrarReverso();
 
-        setTranslateX(origenX);
-        setTranslateY(origenY);
 
-        setScaleX(0.75);
-        setScaleY(0.75);
+        /*
+         * Colocamos visualmente la carta
+         * sobre el mazo.
+         */
+        setTranslateX(
+                origenX
+        );
 
+
+        setTranslateY(
+                origenY
+        );
+
+
+        setScaleX(
+                0.75
+        );
+
+
+        setScaleY(
+                0.75
+        );
+
+
+        // =====================================================
+        // MOVIMIENTO DESDE EL CRUPIER
+        // =====================================================
 
         TranslateTransition movimiento =
                 new TranslateTransition(
@@ -206,20 +497,43 @@ public class CartaVista extends StackPane {
                 );
 
 
-        movimiento.setFromX(origenX);
-        movimiento.setFromY(origenY);
-
-        movimiento.setToX(0);
-        movimiento.setToY(0);
+        movimiento.setToX(
+                0
+        );
 
 
-        movimiento.setOnFinished(evento -> {
+        movimiento.setToY(
+                0
+        );
 
-            setScaleX(1);
-            setScaleY(1);
 
-            voltear(carta);
-        });
+        // =====================================================
+        // CUANDO LLEGA...
+        // =====================================================
+
+        movimiento.setOnFinished(
+                evento -> {
+
+
+                    setScaleX(
+                            1
+                    );
+
+
+                    setScaleY(
+                            1
+                    );
+
+
+                    /*
+                     * Giramos la carta y
+                     * mostramos el PNG.
+                     */
+                    voltear(
+                            carta
+                    );
+                }
+        );
 
 
         movimiento.play();
@@ -227,16 +541,15 @@ public class CartaVista extends StackPane {
 
 
     // =========================================================
-    // DESTACAR
+    // DESTACAR CARTA
     // =========================================================
 
     public void destacar() {
 
-        if (!isVisible()) {
-            return;
-        }
 
-
+        /*
+         * Pequeño temblor horizontal.
+         */
         TranslateTransition temblor =
                 new TranslateTransition(
                         Duration.millis(65),
@@ -244,23 +557,48 @@ public class CartaVista extends StackPane {
                 );
 
 
-        temblor.setFromX(-3);
-        temblor.setToX(3);
-
-        temblor.setAutoReverse(true);
-        temblor.setCycleCount(6);
+        temblor.setFromX(
+                -3
+        );
 
 
-        temblor.setOnFinished(evento -> {
+        temblor.setToX(
+                3
+        );
 
-            setTranslateX(0);
 
-            fondo.setStroke(
-                    Color.GOLD
-            );
+        temblor.setAutoReverse(
+                true
+        );
 
-            fondo.setStrokeWidth(4);
-        });
+
+        temblor.setCycleCount(
+                6
+        );
+
+
+        temblor.setOnFinished(
+                evento -> {
+
+
+                    setTranslateX(
+                            0
+                    );
+
+
+                    /*
+                     * Borde dorado.
+                     */
+                    fondo.setStroke(
+                            Color.GOLD
+                    );
+
+
+                    fondo.setStrokeWidth(
+                            4
+                    );
+                }
+        );
 
 
         temblor.play();
@@ -273,7 +611,10 @@ public class CartaVista extends StackPane {
 
     public void quitarDestacado() {
 
-        setTranslateX(0);
+
+        setTranslateX(
+                0
+        );
 
 
         if (cartaActual != null) {
@@ -282,7 +623,10 @@ public class CartaVista extends StackPane {
                     Color.BLACK
             );
 
-            fondo.setStrokeWidth(2);
+
+            fondo.setStrokeWidth(
+                    2
+            );
 
         } else {
 
@@ -290,13 +634,16 @@ public class CartaVista extends StackPane {
                     Color.WHITE
             );
 
-            fondo.setStrokeWidth(2);
+
+            fondo.setStrokeWidth(
+                    2
+            );
         }
     }
 
 
     // =========================================================
-    // GET CARTA ACTUAL
+    // CARTA ACTUAL
     // =========================================================
 
     public Carta getCartaActual() {
@@ -306,13 +653,16 @@ public class CartaVista extends StackPane {
 
 
     // =========================================================
-    // COMPROBAR CARTA
+    // COMPROBAR SI REPRESENTA UNA CARTA
     // =========================================================
 
-    public boolean representa(Carta carta) {
+    public boolean representa(
+            Carta carta) {
+
 
         if (cartaActual == null
                 || carta == null) {
+
 
             return false;
         }
@@ -320,35 +670,10 @@ public class CartaVista extends StackPane {
 
         return cartaActual.getValor()
                 == carta.getValor()
+
                 &&
+
                 cartaActual.getPalo()
-                        == carta.getPalo();
-    }
-
-
-    // =========================================================
-    // PALO
-    // =========================================================
-
-    private String obtenerSimboloPalo(
-            char palo) {
-
-        switch (palo) {
-
-            case 'h':
-                return "♥";
-
-            case 'd':
-                return "♦";
-
-            case 'c':
-                return "♣";
-
-            case 's':
-                return "♠";
-
-            default:
-                return "";
-        }
+                == carta.getPalo();
     }
 }

@@ -13,6 +13,8 @@ public class JugadorVista extends VBox {
     private String id;
 
     private Label nombre;
+    private Label posicion;
+    private Label nombreMano;
 
     private CartaVista carta1;
     private CartaVista carta2;
@@ -29,13 +31,11 @@ public class JugadorVista extends VBox {
         this.id = id;
 
 
-        // ==========================================
-        // NOMBRE
-        // ==========================================
+        // =====================================================
+        // NOMBRE DEL JUGADOR
+        // =====================================================
 
-        nombre =
-                new Label(id);
-
+        nombre = new Label(id);
 
         nombre.setStyle(
                 "-fx-font-size: 12px;" +
@@ -43,34 +43,44 @@ public class JugadorVista extends VBox {
         );
 
 
-        // ==========================================
+        // =====================================================
+        // POSICIÓN
+        // =====================================================
+
+        posicion = new Label("");
+
+        posicion.setStyle(
+                "-fx-font-size: 12px;" +
+                "-fx-font-weight: bold;"
+        );
+
+        posicion.setVisible(false);
+        posicion.setManaged(false);
+
+
+        // =====================================================
         // CARTAS
-        // ==========================================
+        // =====================================================
 
-        carta1 =
-                new CartaVista();
-
-        carta2 =
-                new CartaVista();
+        carta1 = new CartaVista();
+        carta2 = new CartaVista();
 
 
-        cartas =
-                List.of(
-                        carta1,
-                        carta2
-                );
+        cartas = List.of(
+                carta1,
+                carta2
+        );
 
 
         carta1.setVisible(false);
         carta2.setVisible(false);
 
 
-        HBox filaCartas =
-                new HBox(
-                        4,
-                        carta1,
-                        carta2
-                );
+        HBox filaCartas = new HBox(
+                4,
+                carta1,
+                carta2
+        );
 
 
         filaCartas.setAlignment(
@@ -78,9 +88,23 @@ public class JugadorVista extends VBox {
         );
 
 
-        // ==========================================
-        // JUGADOR
-        // ==========================================
+        // =====================================================
+        // NOMBRE DE LA MANO
+        // =====================================================
+
+        nombreMano = new Label("");
+
+        nombreMano.setStyle(
+                "-fx-font-size: 11px;"
+        );
+
+        nombreMano.setVisible(false);
+        nombreMano.setManaged(false);
+
+
+        // =====================================================
+        // JUGADOR COMPLETO
+        // =====================================================
 
         setSpacing(2);
 
@@ -90,8 +114,10 @@ public class JugadorVista extends VBox {
 
 
         getChildren().addAll(
+                posicion,
                 nombre,
-                filaCartas
+                filaCartas,
+                nombreMano
         );
     }
 
@@ -116,10 +142,101 @@ public class JugadorVista extends VBox {
     }
 
 
-    public CartaVista getCartaVista(
-            int indice) {
+    public CartaVista getCartaVista(int indice) {
 
         return cartas.get(indice);
+    }
+
+
+    // =========================================================
+    // MOSTRAR RESULTADO
+    // =========================================================
+
+    public void mostrarResultado(
+            int puesto,
+            String mano,
+            boolean ganador) {
+
+
+        // =====================================================
+        // POSICIÓN
+        // =====================================================
+
+        if (ganador) {
+
+            posicion.setText(
+                    "🏆 1º"
+            );
+
+        } else {
+
+            posicion.setText(
+                    puesto + "º"
+            );
+        }
+
+
+        posicion.setVisible(true);
+        posicion.setManaged(true);
+
+
+        // =====================================================
+        // MEJOR MANO
+        // =====================================================
+
+        nombreMano.setText(
+                mano
+        );
+
+
+        nombreMano.setVisible(true);
+        nombreMano.setManaged(true);
+
+
+        // =====================================================
+        // ESTILO
+        // =====================================================
+
+        if (ganador) {
+
+            posicion.setStyle(
+                    "-fx-font-size: 13px;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-text-fill: #C99700;"
+            );
+
+
+            nombre.setStyle(
+                    "-fx-font-size: 13px;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-text-fill: #C99700;"
+            );
+
+
+            nombreMano.setStyle(
+                    "-fx-font-size: 11px;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-text-fill: #C99700;"
+            );
+
+        } else {
+
+            posicion.setStyle(
+                    "-fx-font-size: 12px;" +
+                    "-fx-font-weight: bold;"
+            );
+
+
+            nombre.setStyle(
+                    "-fx-font-size: 12px;" +
+                    "-fx-font-weight: bold;"
+            );
+
+
+            nombreMano.setStyle(
+                    "-fx-font-size: 11px;"
+            );
+        }
     }
 
 
@@ -128,6 +245,22 @@ public class JugadorVista extends VBox {
     // =========================================================
 
     public void reiniciar() {
+
+        posicion.setText("");
+        posicion.setVisible(false);
+        posicion.setManaged(false);
+
+
+        nombreMano.setText("");
+        nombreMano.setVisible(false);
+        nombreMano.setManaged(false);
+
+
+        nombre.setStyle(
+                "-fx-font-size: 12px;" +
+                "-fx-font-weight: bold;"
+        );
+
 
         for (CartaVista carta : cartas) {
 

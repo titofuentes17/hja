@@ -3,6 +3,7 @@ package CalculadoraValor;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javafx.animation.PauseTransition;
@@ -33,22 +34,25 @@ public class PokerInterfaz extends Application {
 
 
     // =========================================================
-    // ELEMENTOS DEL APARTADO 3
+    // MESA
+    // =========================================================
+
+    private MesaPokerVista mesaPoker;
+
+
+    // =========================================================
+    // APARTADO 2
+    // =========================================================
+
+    private JugadorVista jugadorVistaApartado2;
+
+
+    // =========================================================
+    // APARTADO 3
     // =========================================================
 
     private List<JugadorVista> jugadoresVistaApartado3 =
             new ArrayList<>();
-
-
-    private List<CartaVista> comunitariasApartado3 =
-            new ArrayList<>();
-
-
-    private VBox zonaJugadoresApartado3;
-
-    private HBox filaComunitariasApartado3;
-
-    private Label tituloComunitariasApartado3;
 
 
     // =========================================================
@@ -60,7 +64,7 @@ public class PokerInterfaz extends Application {
 
 
         // =====================================================
-        // PANEL PRINCIPAL
+        // RAÍZ
         // =====================================================
 
         BorderPane raiz =
@@ -68,7 +72,7 @@ public class PokerInterfaz extends Application {
 
 
         raiz.setPadding(
-                new Insets(10)
+                new Insets(8)
         );
 
 
@@ -111,7 +115,7 @@ public class PokerInterfaz extends Application {
 
 
         // =====================================================
-        // BOTÓN FICHERO
+        // SELECCIONAR FICHERO
         // =====================================================
 
         Button botonFichero =
@@ -135,7 +139,7 @@ public class PokerInterfaz extends Application {
 
         VBox parteSuperior =
                 new VBox(
-                        7,
+                        6,
                         titulo,
                         opciones
                 );
@@ -146,23 +150,13 @@ public class PokerInterfaz extends Application {
         );
 
 
-        parteSuperior.setPadding(
-                new Insets(
-                        0,
-                        0,
-                        5,
-                        0
-                )
-        );
-
-
         raiz.setTop(
                 parteSuperior
         );
 
 
         // =====================================================
-        // CRUPIER / MAZO
+        // CRUPIER
         // =====================================================
 
         Label tituloMazo =
@@ -181,174 +175,62 @@ public class PokerInterfaz extends Application {
                 new CartaVista();
 
 
-        mazo.setScaleX(0.75);
-        mazo.setScaleY(0.75);
+        mazo.setScaleX(0.70);
+        mazo.setScaleY(0.70);
 
 
         // =====================================================
-        // APARTADO 1
+        // MESA ÚNICA
         // =====================================================
 
-        CartaVista carta1 =
-                new CartaVista();
-
-        CartaVista carta2 =
-                new CartaVista();
-
-        CartaVista carta3 =
-                new CartaVista();
-
-        CartaVista carta4 =
-                new CartaVista();
-
-        CartaVista carta5 =
-                new CartaVista();
-
-
-        List<CartaVista> cartasApartado1 =
-                List.of(
-                        carta1,
-                        carta2,
-                        carta3,
-                        carta4,
-                        carta5
-                );
-
-
-        HBox filaApartado1 =
-                new HBox(
-                        7,
-                        carta1,
-                        carta2,
-                        carta3,
-                        carta4,
-                        carta5
-                );
-
-
-        filaApartado1.setAlignment(
-                Pos.CENTER
-        );
+        mesaPoker =
+                new MesaPokerVista();
 
 
         // =====================================================
-        // APARTADO 2 - CARTAS DEL JUGADOR
+        // APARTADO 2 - JUGADOR
         // =====================================================
 
-        CartaVista jugador1 =
-                new CartaVista();
-
-        CartaVista jugador2 =
-                new CartaVista();
-
-
-        List<CartaVista> cartasJugador =
-                List.of(
-                        jugador1,
-                        jugador2
+        jugadorVistaApartado2 =
+                new JugadorVista(
+                        "TÚ"
                 );
-
-
-        HBox filaJugador =
-                new HBox(
-                        7,
-                        jugador1,
-                        jugador2
-                );
-
-
-        filaJugador.setAlignment(
-                Pos.CENTER
-        );
-
-
-        Label tituloJugador =
-                new Label(
-                        "TU MANO"
-                );
-
-
-        tituloJugador.setStyle(
-                "-fx-font-size: 13px;" +
-                "-fx-font-weight: bold;"
-        );
 
 
         // =====================================================
-        // APARTADO 2 - COMUNITARIAS
+        // RESULTADO VISUAL APARTADO 1
         // =====================================================
 
-        CartaVista comun1 =
-                new CartaVista();
-
-        CartaVista comun2 =
-                new CartaVista();
-
-        CartaVista comun3 =
-                new CartaVista();
-
-        CartaVista comun4 =
-                new CartaVista();
-
-        CartaVista comun5 =
-                new CartaVista();
-
-
-        List<CartaVista> cartasComunitarias =
-                List.of(
-                        comun1,
-                        comun2,
-                        comun3,
-                        comun4,
-                        comun5
-                );
-
-
-        HBox filaComunitarias =
-                new HBox(
-                        7,
-                        comun1,
-                        comun2,
-                        comun3,
-                        comun4,
-                        comun5
-                );
-
-
-        filaComunitarias.setAlignment(
-                Pos.CENTER
-        );
-
-
-        Label tituloComunitarias =
-                new Label(
-                        "CARTAS COMUNITARIAS"
-                );
-
-
-        tituloComunitarias.setStyle(
-                "-fx-font-size: 13px;" +
-                "-fx-font-weight: bold;"
-        );
-
-
-        // =====================================================
-        // MEJOR MANO APARTADO 2
-        // =====================================================
-
-        Label mejorManoVisual =
+        Label mejorManoApartado1 =
                 new Label();
 
 
-        mejorManoVisual.setStyle(
-                "-fx-font-size: 15px;" +
+        mejorManoApartado1.setStyle(
+                "-fx-font-size: 14px;" +
                 "-fx-font-weight: bold;"
         );
 
 
-        mejorManoVisual.setVisible(
-                false
+        mejorManoApartado1.setVisible(false);
+        mejorManoApartado1.setManaged(false);
+
+
+        // =====================================================
+        // RESULTADO VISUAL APARTADO 2
+        // =====================================================
+
+        Label mejorManoApartado2 =
+                new Label();
+
+
+        mejorManoApartado2.setStyle(
+                "-fx-font-size: 14px;" +
+                "-fx-font-weight: bold;"
         );
+
+
+        mejorManoApartado2.setVisible(false);
+        mejorManoApartado2.setManaged(false);
 
 
         // =====================================================
@@ -378,20 +260,15 @@ public class PokerInterfaz extends Application {
 
 
         // =====================================================
-        // ZONA JUEGO
+        // ZONA DE JUEGO
         // =====================================================
 
         VBox zonaJuego =
-                new VBox(4);
+                new VBox(2);
 
 
         zonaJuego.setAlignment(
                 Pos.CENTER
-        );
-
-
-        zonaJuego.setPadding(
-                new Insets(3)
         );
 
 
@@ -410,37 +287,26 @@ public class PokerInterfaz extends Application {
                 );
 
 
-        tituloEntrada.setStyle(
-                "-fx-font-size: 11px;"
-        );
-
-
         TextArea entrada =
                 new TextArea();
 
 
-        entrada.setPromptText(
-                "Aquí aparecerá el contenido del fichero..."
-        );
-
-
         entrada.setEditable(false);
 
-        entrada.setPrefRowCount(4);
-        entrada.setPrefHeight(90);
-        entrada.setPrefWidth(400);
+        entrada.setPrefHeight(80);
+        entrada.setPrefWidth(430);
 
 
         VBox zonaEntrada =
                 new VBox(
-                        4,
+                        3,
                         tituloEntrada,
                         entrada
                 );
 
 
         // =====================================================
-        // RESULTADO
+        // SALIDA
         // =====================================================
 
         Label tituloResultado =
@@ -449,30 +315,19 @@ public class PokerInterfaz extends Application {
                 );
 
 
-        tituloResultado.setStyle(
-                "-fx-font-size: 11px;"
-        );
-
-
         TextArea resultado =
                 new TextArea();
 
 
-        resultado.setPromptText(
-                "Aquí aparecerá el resultado..."
-        );
-
-
         resultado.setEditable(false);
 
-        resultado.setPrefRowCount(4);
-        resultado.setPrefHeight(90);
-        resultado.setPrefWidth(400);
+        resultado.setPrefHeight(80);
+        resultado.setPrefWidth(430);
 
 
         VBox zonaResultado =
                 new VBox(
-                        4,
+                        3,
                         tituloResultado,
                         resultado
                 );
@@ -493,7 +348,7 @@ public class PokerInterfaz extends Application {
 
         parteInferior.setPadding(
                 new Insets(
-                        5,
+                        4,
                         0,
                         0,
                         0
@@ -507,33 +362,14 @@ public class PokerInterfaz extends Application {
 
 
         // =====================================================
-        // OCULTAR CARTAS
+        // MOSTRAR APARTADO 1 INICIAL
         // =====================================================
 
-        ocultarCartas(
-                cartasApartado1
-        );
-
-
-        ocultarCartas(
-                cartasJugador
-        );
-
-
-        ocultarCartas(
-                cartasComunitarias
-        );
-
-
-        // =====================================================
-        // APARTADO 1 INICIAL
-        // =====================================================
-
-        mostrarInterfazApartado1(
+        mostrarApartado1(
                 zonaJuego,
                 tituloMazo,
                 mazo,
-                filaApartado1,
+                mejorManoApartado1,
                 contadorManos,
                 botonRepartir
         );
@@ -557,44 +393,30 @@ public class PokerInterfaz extends Application {
 
             resultado.clear();
 
-            mejorManoVisual.setVisible(false);
 
-
-            ocultarCartas(
-                    cartasApartado1
+            ocultarResultadoVisual(
+                    mejorManoApartado1
             );
 
 
-            ocultarCartas(
-                    cartasJugador
-            );
-
-
-            ocultarCartas(
-                    cartasComunitarias
+            ocultarResultadoVisual(
+                    mejorManoApartado2
             );
 
 
             String apartado =
-                    selectorApartado
-                            .getValue();
+                    selectorApartado.getValue();
 
 
-            // ================================================
-            // APARTADO 1
-            // ================================================
-
-            if (apartado
-                    .startsWith(
-                            "Apartado 1"
-                    )) {
+            if (apartado.startsWith(
+                    "Apartado 1")) {
 
 
-                mostrarInterfazApartado1(
+                mostrarApartado1(
                         zonaJuego,
                         tituloMazo,
                         mazo,
-                        filaApartado1,
+                        mejorManoApartado1,
                         contadorManos,
                         botonRepartir
                 );
@@ -609,25 +431,15 @@ public class PokerInterfaz extends Application {
             }
 
 
-            // ================================================
-            // APARTADO 2
-            // ================================================
-
-            else if (apartado
-                    .startsWith(
-                            "Apartado 2"
-                    )) {
+            else if (apartado.startsWith(
+                    "Apartado 2")) {
 
 
-                mostrarInterfazApartado2(
+                mostrarApartado2(
                         zonaJuego,
                         tituloMazo,
                         mazo,
-                        tituloComunitarias,
-                        filaComunitarias,
-                        tituloJugador,
-                        filaJugador,
-                        mejorManoVisual,
+                        mejorManoApartado2,
                         contadorManos,
                         botonRepartir
                 );
@@ -642,14 +454,10 @@ public class PokerInterfaz extends Application {
             }
 
 
-            // ================================================
-            // APARTADO 3
-            // ================================================
-
             else {
 
 
-                mostrarInterfazApartado3(
+                mostrarApartado3(
                         zonaJuego,
                         tituloMazo,
                         mazo,
@@ -674,33 +482,29 @@ public class PokerInterfaz extends Application {
 
         botonFichero.setOnAction(evento -> {
 
-            FileChooser selectorFichero =
+            FileChooser selector =
                     new FileChooser();
 
 
-            selectorFichero.setTitle(
+            selector.setTitle(
                     "Seleccionar fichero de entrada"
             );
 
 
-            selectorFichero
+            selector
                     .getExtensionFilters()
                     .add(
-
                             new FileChooser.ExtensionFilter(
-
                                     "Ficheros de texto (*.txt)",
-
                                     "*.txt"
                             )
                     );
 
 
             File fichero =
-                    selectorFichero
-                            .showOpenDialog(
-                                    escenario
-                            );
+                    selector.showOpenDialog(
+                            escenario
+                    );
 
 
             if (fichero != null) {
@@ -709,16 +513,14 @@ public class PokerInterfaz extends Application {
 
                     List<String> lineas =
                             Utils.leerFichero(
-                                    fichero
-                                            .getAbsolutePath()
+                                    fichero.getAbsolutePath()
                             );
 
 
                     entrada.clear();
 
 
-                    for (String linea
-                            : lineas) {
+                    for (String linea : lineas) {
 
                         entrada.appendText(
                                 linea
@@ -731,8 +533,6 @@ public class PokerInterfaz extends Application {
 
                     resultado.clear();
 
-                    mejorManoVisual.setVisible(false);
-
 
                     contadorManos.setText(
                             "Mano 1 / "
@@ -740,19 +540,12 @@ public class PokerInterfaz extends Application {
                     );
 
 
-                    ocultarCartas(
-                            cartasApartado1
-                    );
+                    mesaPoker
+                            .reiniciarCartasCentro();
 
 
-                    ocultarCartas(
-                            cartasJugador
-                    );
-
-
-                    ocultarCartas(
-                            cartasComunitarias
-                    );
+                    jugadorVistaApartado2
+                            .reiniciar();
 
 
                 } catch (IOException e) {
@@ -785,18 +578,11 @@ public class PokerInterfaz extends Application {
 
 
             String apartado =
-                    selectorApartado
-                            .getValue();
+                    selectorApartado.getValue();
 
 
-            // ================================================
-            // APARTADO 1
-            // ================================================
-
-            if (apartado
-                    .startsWith(
-                            "Apartado 1"
-                    )) {
+            if (apartado.startsWith(
+                    "Apartado 1")) {
 
 
                 repartirApartado1(
@@ -805,19 +591,13 @@ public class PokerInterfaz extends Application {
                         contadorManos,
                         botonRepartir,
                         mazo,
-                        cartasApartado1
+                        mejorManoApartado1
                 );
             }
 
 
-            // ================================================
-            // APARTADO 2
-            // ================================================
-
-            else if (apartado
-                    .startsWith(
-                            "Apartado 2"
-                    )) {
+            else if (apartado.startsWith(
+                    "Apartado 2")) {
 
 
                 repartirApartado2(
@@ -826,16 +606,10 @@ public class PokerInterfaz extends Application {
                         contadorManos,
                         botonRepartir,
                         mazo,
-                        cartasJugador,
-                        cartasComunitarias,
-                        mejorManoVisual
+                        mejorManoApartado2
                 );
             }
 
-
-            // ================================================
-            // APARTADO 3
-            // ================================================
 
             else {
 
@@ -852,14 +626,14 @@ public class PokerInterfaz extends Application {
 
 
         // =====================================================
-        // VENTANA
+        // ESCENA
         // =====================================================
 
         Scene escena =
                 new Scene(
                         raiz,
-                        900,
-                        650
+                        950,
+                        720
                 );
 
 
@@ -878,317 +652,108 @@ public class PokerInterfaz extends Application {
 
 
     // =========================================================
-    // INTERFAZ APARTADO 1
+    // MOSTRAR APARTADO 1
     // =========================================================
 
-    private void mostrarInterfazApartado1(
-            VBox zonaJuego,
+    private void mostrarApartado1(
+            VBox zona,
             Label tituloMazo,
             CartaVista mazo,
-            HBox filaCartas,
+            Label mejor,
             Label contador,
-            Button botonRepartir) {
+            Button boton) {
 
 
-        zonaJuego
-                .getChildren()
-                .clear();
+        zona.getChildren().clear();
 
 
-        zonaJuego.setSpacing(5);
+        mesaPoker.prepararApartado1();
 
 
-        Label tituloMesa =
-                new Label(
-                        "MESA"
-                );
-
-
-        tituloMesa.setStyle(
-                "-fx-font-size: 14px;" +
-                "-fx-font-weight: bold;"
+        zona.getChildren().addAll(
+                tituloMazo,
+                mazo,
+                mesaPoker,
+                mejor,
+                contador,
+                boton
         );
-
-
-        zonaJuego
-                .getChildren()
-                .addAll(
-                        tituloMazo,
-                        mazo,
-                        tituloMesa,
-                        filaCartas,
-                        contador,
-                        botonRepartir
-                );
     }
 
 
     // =========================================================
-    // INTERFAZ APARTADO 2
+    // MOSTRAR APARTADO 2
     // =========================================================
 
-    private void mostrarInterfazApartado2(
-            VBox zonaJuego,
+    private void mostrarApartado2(
+            VBox zona,
             Label tituloMazo,
             CartaVista mazo,
-            Label tituloComunitarias,
-            HBox filaComunitarias,
-            Label tituloJugador,
-            HBox filaJugador,
-            Label mejorMano,
+            Label mejor,
             Label contador,
-            Button botonRepartir) {
+            Button boton) {
 
 
-        zonaJuego
-                .getChildren()
-                .clear();
+        zona.getChildren().clear();
 
 
-        zonaJuego.setSpacing(3);
-
-
-        zonaJuego
-                .getChildren()
-                .addAll(
-                        tituloMazo,
-                        mazo,
-                        tituloComunitarias,
-                        filaComunitarias,
-                        tituloJugador,
-                        filaJugador,
-                        mejorMano,
-                        contador,
-                        botonRepartir
+        jugadorVistaApartado2 =
+                new JugadorVista(
+                        "TÚ"
                 );
+
+
+        mesaPoker.prepararApartado2(
+                jugadorVistaApartado2
+        );
+
+
+        zona.getChildren().addAll(
+                tituloMazo,
+                mazo,
+                mesaPoker,
+                mejor,
+                contador,
+                boton
+        );
     }
 
 
     // =========================================================
-    // INTERFAZ APARTADO 3
+    // MOSTRAR APARTADO 3
     // =========================================================
 
-    private void mostrarInterfazApartado3(
-            VBox zonaJuego,
+    private void mostrarApartado3(
+            VBox zona,
             Label tituloMazo,
             CartaVista mazo,
             Label contador,
-            Button botonRepartir) {
+            Button boton) {
 
 
-        zonaJuego
-                .getChildren()
-                .clear();
-
-
-        zonaJuego.setSpacing(3);
-
-
-        // -----------------------------------------
-        // ZONA JUGADORES
-        // -----------------------------------------
-
-        zonaJugadoresApartado3 =
-                new VBox(4);
-
-
-        zonaJugadoresApartado3.setAlignment(
-                Pos.CENTER
-        );
-
-
-        Label mensaje =
-                new Label(
-                        "Pulsa REPARTIR para sentar a los jugadores"
-                );
-
-
-        mensaje.setStyle(
-                "-fx-font-size: 11px;"
-        );
-
-
-        zonaJugadoresApartado3
-                .getChildren()
-                .add(
-                        mensaje
-                );
-
-
-        // -----------------------------------------
-        // COMUNITARIAS
-        // -----------------------------------------
-
-        tituloComunitariasApartado3 =
-                new Label(
-                        "CARTAS COMUNITARIAS"
-                );
-
-
-        tituloComunitariasApartado3.setStyle(
-                "-fx-font-size: 13px;" +
-                "-fx-font-weight: bold;"
-        );
-
-
-        comunitariasApartado3 =
-                new ArrayList<>();
-
-
-        for (int i = 0; i < 5; i++) {
-
-            CartaVista carta =
-                    new CartaVista();
-
-
-            carta.setVisible(false);
-
-
-            comunitariasApartado3.add(
-                    carta
-            );
-        }
-
-
-        filaComunitariasApartado3 =
-                new HBox(7);
-
-
-        filaComunitariasApartado3.setAlignment(
-                Pos.CENTER
-        );
-
-
-        filaComunitariasApartado3
-                .getChildren()
-                .addAll(
-                        comunitariasApartado3
-                );
-
-
-        // -----------------------------------------
-        // TODO
-        // -----------------------------------------
-
-        zonaJuego
-                .getChildren()
-                .addAll(
-                        tituloMazo,
-                        mazo,
-                        zonaJugadoresApartado3,
-                        tituloComunitariasApartado3,
-                        filaComunitariasApartado3,
-                        contador,
-                        botonRepartir
-                );
-    }
-
-
-    // =========================================================
-    // CREAR JUGADORES VISUALES APARTADO 3
-    // =========================================================
-
-    private void crearJugadoresVisuales(
-            List<String> ids) {
+        zona.getChildren().clear();
 
 
         jugadoresVistaApartado3.clear();
 
 
-        zonaJugadoresApartado3
-                .getChildren()
-                .clear();
-
-
-        // Creamos todos los jugadores.
-        for (String id : ids) {
-
-            JugadorVista vista =
-                    new JugadorVista(id);
-
-
-            jugadoresVistaApartado3.add(
-                    vista
-            );
-        }
-
-
-        // -----------------------------------------
-        // DOS FILAS
-        // -----------------------------------------
-
-        HBox filaSuperior =
-                new HBox(20);
-
-
-        HBox filaInferior =
-                new HBox(20);
-
-
-        filaSuperior.setAlignment(
-                Pos.CENTER
+        mesaPoker.prepararApartado3(
+                jugadoresVistaApartado3
         );
 
 
-        filaInferior.setAlignment(
-                Pos.CENTER
+        zona.getChildren().addAll(
+                tituloMazo,
+                mazo,
+                mesaPoker,
+                contador,
+                boton
         );
-
-
-        int mitad =
-                (jugadoresVistaApartado3.size() + 1)
-                        / 2;
-
-
-        for (int i = 0;
-             i < jugadoresVistaApartado3.size();
-             i++) {
-
-
-            if (i < mitad) {
-
-                filaSuperior
-                        .getChildren()
-                        .add(
-                                jugadoresVistaApartado3
-                                        .get(i)
-                        );
-
-            } else {
-
-                filaInferior
-                        .getChildren()
-                        .add(
-                                jugadoresVistaApartado3
-                                        .get(i)
-                        );
-            }
-        }
-
-
-        zonaJugadoresApartado3
-                .getChildren()
-                .add(
-                        filaSuperior
-                );
-
-
-        if (!filaInferior
-                .getChildren()
-                .isEmpty()) {
-
-
-            zonaJugadoresApartado3
-                    .getChildren()
-                    .add(
-                            filaInferior
-                    );
-        }
     }
 
 
     // =========================================================
-    // REPARTIR APARTADO 1
+    // APARTADO 1
     // =========================================================
 
     private void repartirApartado1(
@@ -1197,7 +762,7 @@ public class PokerInterfaz extends Application {
             Label contador,
             Button boton,
             CartaVista mazo,
-            List<CartaVista> cartasVisuales) {
+            Label mejorVisual) {
 
 
         List<String> lineas =
@@ -1211,14 +776,12 @@ public class PokerInterfaz extends Application {
         }
 
 
-        if (indiceManoActual
-                >= lineas.size()) {
-
+        if (indiceManoActual >= lineas.size()) {
             indiceManoActual = 0;
         }
 
 
-        String lineaActual =
+        String linea =
                 lineas.get(
                         indiceManoActual
                 );
@@ -1234,38 +797,43 @@ public class PokerInterfaz extends Application {
 
         List<Carta> cartas =
                 Utils.parsearCartas(
-                        lineaActual
+                        linea
                 );
+
+
+        mesaPoker.prepararApartado1();
 
 
         resultado.clear();
 
-        boton.setDisable(true);
-
-
-        ocultarCartas(
-                cartasVisuales
+        ocultarResultadoVisual(
+                mejorVisual
         );
 
 
-        // -----------------------------------------
-        // REPARTIR
-        // -----------------------------------------
+        boton.setDisable(
+                true
+        );
+
+
+        // =====================================================
+        // REPARTIR LAS 5 CARTAS
+        // =====================================================
 
         for (int i = 0;
              i < cartas.size()
-                     && i < cartasVisuales.size();
+                     && i < 5;
              i++) {
 
 
-            final int indice = i;
+            final int indice =
+                    i;
 
 
             PauseTransition pausa =
                     new PauseTransition(
-
                             Duration.millis(
-                                    indice * 700
+                                    i * 600
                             )
                     );
 
@@ -1274,10 +842,12 @@ public class PokerInterfaz extends Application {
 
                 repartirDesdeMazo(
                         mazo,
-                        cartasVisuales
-                                .get(indice),
-                        cartas
-                                .get(indice)
+                        mesaPoker.getCartaCentro(
+                                indice
+                        ),
+                        cartas.get(
+                                indice
+                        )
                 );
             });
 
@@ -1287,26 +857,39 @@ public class PokerInterfaz extends Application {
 
 
         String mejorMano =
-                Evaluador
-                        .obtenerMejorManoTexto(
-                                cartas
-                        );
-
-
-        List<String> draws =
-                Evaluador
-                        .obtenerDraws(
-                                cartas
-                        );
-
-
-        PauseTransition finalReparto =
-                new PauseTransition(
-                        Duration.millis(4000)
+                Evaluador.obtenerMejorManoTexto(
+                        cartas
                 );
 
 
-        finalReparto.setOnFinished(e -> {
+        List<String> draws =
+                Evaluador.obtenerDraws(
+                        cartas
+                );
+
+
+        PauseTransition fin =
+                new PauseTransition(
+                        Duration.millis(
+                                3600
+                        )
+                );
+
+
+        fin.setOnFinished(e -> {
+
+            mejorVisual.setText(
+                    "★ "
+                            + Evaluador.obtenerNombreMano(
+                                    cartas
+                            )
+            );
+
+
+            mostrarResultadoVisual(
+                    mejorVisual
+            );
+
 
             resultado.appendText(
                     "- Best hand: "
@@ -1330,16 +913,18 @@ public class PokerInterfaz extends Application {
             );
 
 
-            boton.setDisable(false);
+            boton.setDisable(
+                    false
+            );
         });
 
 
-        finalReparto.play();
+        fin.play();
     }
 
 
     // =========================================================
-    // REPARTIR APARTADO 2
+    // APARTADO 2
     // =========================================================
 
     private void repartirApartado2(
@@ -1348,9 +933,7 @@ public class PokerInterfaz extends Application {
             Label contador,
             Button boton,
             CartaVista mazo,
-            List<CartaVista> cartasJugador,
-            List<CartaVista> cartasComunitarias,
-            Label mejorManoVisual) {
+            Label mejorVisual) {
 
 
         List<String> lineas =
@@ -1364,14 +947,12 @@ public class PokerInterfaz extends Application {
         }
 
 
-        if (indiceManoActual
-                >= lineas.size()) {
-
+        if (indiceManoActual >= lineas.size()) {
             indiceManoActual = 0;
         }
 
 
-        String lineaActual =
+        String linea =
                 lineas.get(
                         indiceManoActual
                 );
@@ -1386,7 +967,7 @@ public class PokerInterfaz extends Application {
 
 
         String[] partes =
-                lineaActual.split(";");
+                linea.split(";");
 
 
         if (partes.length < 3) {
@@ -1405,7 +986,7 @@ public class PokerInterfaz extends Application {
                 );
 
 
-        int numComunes =
+        int numeroComunes =
                 Integer.parseInt(
                         partes[1]
                 );
@@ -1418,15 +999,14 @@ public class PokerInterfaz extends Application {
 
 
         if (comunes.size()
-                > numComunes) {
+                > numeroComunes) {
 
 
             comunes =
                     new ArrayList<>(
-
                             comunes.subList(
                                     0,
-                                    numComunes
+                                    numeroComunes
                             )
                     );
         }
@@ -1436,9 +1016,9 @@ public class PokerInterfaz extends Application {
                 comunes;
 
 
-        // -----------------------------------------
-        // CALCULAR MANO
-        // -----------------------------------------
+        // =====================================================
+        // JUGADOR
+        // =====================================================
 
         Jugador jugador =
                 new Jugador(
@@ -1447,63 +1027,53 @@ public class PokerInterfaz extends Application {
                 );
 
 
-        List<Carta> cartasMejorMano =
+        List<Carta> mejorMano =
                 jugador
                         .getMejorMano()
                         .getCartas();
 
 
-        String nombreMejorMano =
-                jugador.getNombreMano();
+        // =====================================================
+        // REINICIAR MESA
+        // =====================================================
+
+        jugadorVistaApartado2
+                .reiniciar();
 
 
-        String mejorManoTexto =
-                jugador.getMejorManoTexto();
+        mesaPoker.reiniciarCartasCentro();
 
-
-        List<String> draws =
-                jugador.getDraws();
-
-
-        // -----------------------------------------
-        // REINICIAR
-        // -----------------------------------------
 
         resultado.clear();
 
-        mejorManoVisual.setVisible(false);
 
-        boton.setDisable(true);
-
-
-        ocultarCartas(
-                cartasJugador
+        ocultarResultadoVisual(
+                mejorVisual
         );
 
 
-        ocultarCartas(
-                cartasComunitarias
+        boton.setDisable(
+                true
         );
 
 
-        // -----------------------------------------
-        // CARTAS PROPIAS
-        // -----------------------------------------
+        // =====================================================
+        // REPARTIR LAS DOS CARTAS PROPIAS
+        // =====================================================
 
         for (int i = 0;
-             i < propias.size()
-                     && i < cartasJugador.size();
+             i < propias.size();
              i++) {
 
 
-            final int indice = i;
+            final int indice =
+                    i;
 
 
             PauseTransition pausa =
                     new PauseTransition(
-
                             Duration.millis(
-                                    indice * 700
+                                    i * 600
                             )
                     );
 
@@ -1512,10 +1082,15 @@ public class PokerInterfaz extends Application {
 
                 repartirDesdeMazo(
                         mazo,
-                        cartasJugador
-                                .get(indice),
-                        propias
-                                .get(indice)
+
+                        jugadorVistaApartado2
+                                .getCartaVista(
+                                        indice
+                                ),
+
+                        propias.get(
+                                indice
+                        )
                 );
             });
 
@@ -1524,25 +1099,24 @@ public class PokerInterfaz extends Application {
         }
 
 
-        // -----------------------------------------
-        // COMUNITARIAS
-        // -----------------------------------------
+        // =====================================================
+        // REPARTIR COMUNITARIAS
+        // =====================================================
 
         for (int i = 0;
-             i < comunesFinal.size()
-                     && i < cartasComunitarias.size();
+             i < comunesFinal.size();
              i++) {
 
 
-            final int indice = i;
+            final int indice =
+                    i;
 
 
             PauseTransition pausa =
                     new PauseTransition(
-
                             Duration.millis(
-                                    1400
-                                            + indice * 700
+                                    1200
+                                            + i * 600
                             )
                     );
 
@@ -1551,10 +1125,14 @@ public class PokerInterfaz extends Application {
 
                 repartirDesdeMazo(
                         mazo,
-                        cartasComunitarias
-                                .get(indice),
-                        comunesFinal
-                                .get(indice)
+
+                        mesaPoker.getCartaCentro(
+                                indice
+                        ),
+
+                        comunesFinal.get(
+                                indice
+                        )
                 );
             });
 
@@ -1564,46 +1142,47 @@ public class PokerInterfaz extends Application {
 
 
         long tiempoFinal =
-                1400
-                        + comunesFinal.size() * 700L
+                1200
+                        + comunesFinal.size() * 600L
                         + 700;
 
 
-        PauseTransition finalReparto =
+        PauseTransition fin =
                 new PauseTransition(
-
                         Duration.millis(
                                 tiempoFinal
                         )
                 );
 
 
-        finalReparto.setOnFinished(e -> {
+        fin.setOnFinished(e -> {
 
-            mejorManoVisual.setText(
+            mejorVisual.setText(
                     "★ MEJOR MANO: "
-                            + nombreMejorMano
+                            + jugador.getNombreMano()
             );
 
 
-            mejorManoVisual.setVisible(true);
+            mostrarResultadoVisual(
+                    mejorVisual
+            );
 
 
-            destacarMejorMano(
-                    cartasMejorMano,
-                    cartasJugador,
-                    cartasComunitarias
+            destacarMejorManoApartado2(
+                    mejorMano
             );
 
 
             resultado.appendText(
                     "- Best hand: "
-                            + mejorManoTexto
+                            + jugador.getMejorManoTexto()
                             + System.lineSeparator()
             );
 
 
-            for (String draw : draws) {
+            for (String draw :
+                    jugador.getDraws()) {
+
 
                 resultado.appendText(
                         "- "
@@ -1618,16 +1197,18 @@ public class PokerInterfaz extends Application {
             );
 
 
-            boton.setDisable(false);
+            boton.setDisable(
+                    false
+            );
         });
 
 
-        finalReparto.play();
+        fin.play();
     }
 
 
     // =========================================================
-    // REPARTIR APARTADO 3
+    // APARTADO 3
     // =========================================================
 
     private void repartirApartado3(
@@ -1649,14 +1230,12 @@ public class PokerInterfaz extends Application {
         }
 
 
-        if (indiceManoActual
-                >= lineas.size()) {
-
+        if (indiceManoActual >= lineas.size()) {
             indiceManoActual = 0;
         }
 
 
-        String lineaActual =
+        String linea =
                 lineas.get(
                         indiceManoActual
                 );
@@ -1670,12 +1249,8 @@ public class PokerInterfaz extends Application {
         );
 
 
-        // =========================================
-        // LEER LÍNEA
-        // =========================================
-
         String[] partes =
-                lineaActual.split(";");
+                linea.split(";");
 
 
         int numeroJugadores =
@@ -1684,9 +1259,17 @@ public class PokerInterfaz extends Application {
                 );
 
 
-        // =========================================
-        // JUGADORES
-        // =========================================
+        // =====================================================
+        // COMUNITARIAS
+        // =====================================================
+
+        List<Carta> comunes =
+                Utils.parsearCartas(
+                        partes[
+                                partes.length - 1
+                        ]
+                );
+
 
         List<String> ids =
                 new ArrayList<>();
@@ -1696,100 +1279,98 @@ public class PokerInterfaz extends Application {
                 new ArrayList<>();
 
 
+        List<Jugador> jugadores =
+                new ArrayList<>();
+
+
+        // =====================================================
+        // LEER JUGADORES
+        // =====================================================
+
         for (int i = 1;
              i <= numeroJugadores;
              i++) {
 
 
-            String parteJugador =
+            String textoJugador =
                     partes[i];
 
 
-            // Las últimas cuatro posiciones
-            // corresponden a las dos cartas.
             String id =
-                    parteJugador.substring(
+                    textoJugador.substring(
                             0,
-                            parteJugador.length() - 4
+                            textoJugador.length() - 4
                     );
 
 
-            String textoCartas =
-                    parteJugador.substring(
-                            parteJugador.length() - 4
+            List<Carta> propias =
+                    Utils.parsearCartas(
+
+                            textoJugador.substring(
+                                    textoJugador.length() - 4
+                            )
                     );
 
 
-            ids.add(id);
+            ids.add(
+                    id
+            );
 
 
             cartasJugadores.add(
+                    propias
+            );
 
-                    Utils.parsearCartas(
-                            textoCartas
+
+            jugadores.add(
+                    new Jugador(
+                            id,
+                            propias,
+                            comunes
                     )
             );
         }
 
 
-        // =========================================
-        // COMUNITARIAS
-        // =========================================
+        // =====================================================
+        // CREAR VISTAS
+        // =====================================================
 
-        List<Carta> comunes =
-                Utils.parsearCartas(
-
-                        partes[
-                                partes.length - 1
-                        ]
-                );
+        jugadoresVistaApartado3.clear();
 
 
-        // =========================================
-        // CREAR JUGADORES VISUALES
-        // =========================================
+        for (String id : ids) {
 
-        crearJugadoresVisuales(
-                ids
-        );
-
-
-        // =========================================
-        // REINICIAR COMUNITARIAS
-        // =========================================
-
-        for (CartaVista carta
-                : comunitariasApartado3) {
-
-
-            carta.quitarDestacado();
-
-            carta.setVisible(false);
-
-            carta.setTranslateX(0);
-            carta.setTranslateY(0);
-
-            carta.setScaleX(1);
-            carta.setScaleY(1);
-
-            carta.setRotate(0);
+            jugadoresVistaApartado3.add(
+                    new JugadorVista(
+                            id
+                    )
+            );
         }
+
+
+        mesaPoker.prepararApartado3(
+                jugadoresVistaApartado3
+        );
 
 
         resultado.clear();
 
-        boton.setDisable(true);
+
+        boton.setDisable(
+                true
+        );
 
 
-        // =========================================
+        // =====================================================
         // REPARTO REAL
         //
-        // 1ª vuelta:
-        // J1 J2 J3 J4...
+        // 1ª ronda:
+        // J1 J2 J3...
         //
-        // 2ª vuelta:
-        // J1 J2 J3 J4...
-        // =========================================
+        // 2ª ronda:
+        // J1 J2 J3...
+        // =====================================================
 
         long retraso = 0;
 
@@ -1816,7 +1397,6 @@ public class PokerInterfaz extends Application {
 
                 PauseTransition pausa =
                         new PauseTransition(
-
                                 Duration.millis(
                                         retraso
                                 )
@@ -1825,34 +1405,24 @@ public class PokerInterfaz extends Application {
 
                 pausa.setOnFinished(e -> {
 
-                    JugadorVista jugadorVista =
+                    repartirDesdeMazo(
+                            mazo,
+
                             jugadoresVistaApartado3
                                     .get(
                                             indiceJugador
-                                    );
-
-
-                    CartaVista destino =
-                            jugadorVista
+                                    )
                                     .getCartaVista(
                                             indiceCarta
-                                    );
+                                    ),
 
-
-                    Carta carta =
                             cartasJugadores
                                     .get(
                                             indiceJugador
                                     )
                                     .get(
                                             indiceCarta
-                                    );
-
-
-                    repartirDesdeMazo(
-                            mazo,
-                            destino,
-                            carta
+                                    )
                     );
                 });
 
@@ -1865,13 +1435,13 @@ public class PokerInterfaz extends Application {
         }
 
 
-        // =========================================
-        // CINCO COMUNITARIAS
-        // =========================================
+        // =====================================================
+        // COMUNITARIAS
+        // =====================================================
 
         for (int i = 0;
              i < comunes.size()
-                     && i < comunitariasApartado3.size();
+                     && i < 5;
              i++) {
 
 
@@ -1881,7 +1451,6 @@ public class PokerInterfaz extends Application {
 
             PauseTransition pausa =
                     new PauseTransition(
-
                             Duration.millis(
                                     retraso
                             )
@@ -1892,10 +1461,14 @@ public class PokerInterfaz extends Application {
 
                 repartirDesdeMazo(
                         mazo,
-                        comunitariasApartado3
-                                .get(indice),
-                        comunes
-                                .get(indice)
+
+                        mesaPoker.getCartaCentro(
+                                indice
+                        ),
+
+                        comunes.get(
+                                indice
+                        )
                 );
             });
 
@@ -1907,32 +1480,109 @@ public class PokerInterfaz extends Application {
         }
 
 
-        // =========================================
-        // FINAL
-        // =========================================
+        // =====================================================
+        // RESULTADO FINAL
+        // =====================================================
 
-        PauseTransition finalReparto =
+        PauseTransition fin =
                 new PauseTransition(
-
                         Duration.millis(
-                                retraso + 700
+                                retraso + 800
                         )
                 );
 
 
-        finalReparto.setOnFinished(e -> {
+        fin.setOnFinished(e -> {
 
-            resultado.appendText(
-                    "Reparto completado."
-                            + System.lineSeparator()
+            List<Jugador> clasificacion =
+                    new ArrayList<>(
+                            jugadores
+                    );
+
+
+            clasificacion.sort(
+                    Collections.reverseOrder()
             );
 
 
-            resultado.appendText(
-                    numeroJugadores
-                            + " jugadores."
-                            + System.lineSeparator()
-            );
+            // =================================================
+            // MOSTRAR PUESTOS
+            // =================================================
+
+            for (int i = 0;
+                 i < clasificacion.size();
+                 i++) {
+
+
+                Jugador jugador =
+                        clasificacion.get(
+                                i
+                        );
+
+
+                JugadorVista vista =
+                        buscarVistaJugador(
+                                jugador.getId()
+                        );
+
+
+                if (vista != null) {
+
+                    vista.mostrarResultado(
+                            i + 1,
+                            jugador.getNombreMano(),
+                            i == 0
+                    );
+                }
+            }
+
+
+            // =================================================
+            // GANADOR
+            // =================================================
+
+            if (!clasificacion.isEmpty()) {
+
+                destacarManoGanadora(
+                        clasificacion.get(0)
+                );
+            }
+
+
+            // =================================================
+            // TEXTO
+            // =================================================
+
+            resultado.clear();
+
+
+            for (int i = 0;
+                 i < clasificacion.size();
+                 i++) {
+
+
+                Jugador jugador =
+                        clasificacion.get(
+                                i
+                        );
+
+
+                resultado.appendText(
+                        (i + 1)
+                                + "º "
+                                + jugador.getId()
+                                + ": "
+                                + Utils.cartasAString(
+                                        jugador
+                                                .getMejorMano()
+                                                .getCartas()
+                                )
+                                + " ("
+                                + jugador.getNombreMano()
+                                + ")"
+                                + System.lineSeparator()
+                );
+            }
 
 
             avanzarMano(
@@ -1940,36 +1590,22 @@ public class PokerInterfaz extends Application {
             );
 
 
-            boton.setDisable(false);
+            boton.setDisable(
+                    false
+            );
         });
 
 
-        finalReparto.play();
+        fin.play();
     }
 
 
     // =========================================================
-    // DESTACAR MEJOR MANO APARTADO 2
+    // DESTACAR APARTADO 2
     // =========================================================
 
-    private void destacarMejorMano(
-            List<Carta> mejorMano,
-            List<CartaVista> cartasJugador,
-            List<CartaVista> cartasComunitarias) {
-
-
-        for (CartaVista vista
-                : cartasJugador) {
-
-            vista.quitarDestacado();
-        }
-
-
-        for (CartaVista vista
-                : cartasComunitarias) {
-
-            vista.quitarDestacado();
-        }
+    private void destacarMejorManoApartado2(
+            List<Carta> mejorMano) {
 
 
         List<CartaVista> todas =
@@ -1977,21 +1613,87 @@ public class PokerInterfaz extends Application {
 
 
         todas.addAll(
-                cartasJugador
+                jugadorVistaApartado2
+                        .getCartasVista()
         );
 
 
         todas.addAll(
-                cartasComunitarias
+                mesaPoker.getCartasCentro()
         );
 
 
-        for (Carta cartaMejor
-                : mejorMano) {
+        destacarCartas(
+                mejorMano,
+                todas
+        );
+    }
 
 
-            for (CartaVista vista
-                    : todas) {
+    // =========================================================
+    // DESTACAR GANADOR APARTADO 3
+    // =========================================================
+
+    private void destacarManoGanadora(
+            Jugador ganador) {
+
+
+        JugadorVista vistaGanador =
+                buscarVistaJugador(
+                        ganador.getId()
+                );
+
+
+        if (vistaGanador == null) {
+            return;
+        }
+
+
+        List<CartaVista> posibles =
+                new ArrayList<>();
+
+
+        posibles.addAll(
+                vistaGanador.getCartasVista()
+        );
+
+
+        posibles.addAll(
+                mesaPoker.getCartasCentro()
+        );
+
+
+        destacarCartas(
+                ganador
+                        .getMejorMano()
+                        .getCartas(),
+
+                posibles
+        );
+    }
+
+
+    // =========================================================
+    // DESTACAR CARTAS
+    // =========================================================
+
+    private void destacarCartas(
+            List<Carta> mejorMano,
+            List<CartaVista> vistas) {
+
+
+        for (CartaVista vista : vistas) {
+
+            vista.quitarDestacado();
+        }
+
+
+        for (Carta cartaMejor :
+                mejorMano) {
+
+
+            for (CartaVista vista :
+                    vistas) {
 
 
                 if (vista.representa(
@@ -2009,7 +1711,33 @@ public class PokerInterfaz extends Application {
 
 
     // =========================================================
-    // REPARTIR DESDE EL MAZO
+    // BUSCAR JUGADOR
+    // =========================================================
+
+    private JugadorVista buscarVistaJugador(
+            String id) {
+
+
+        for (JugadorVista vista :
+                jugadoresVistaApartado3) {
+
+
+            if (vista
+                    .getIdJugador()
+                    .equals(id)) {
+
+
+                return vista;
+            }
+        }
+
+
+        return null;
+    }
+
+
+    // =========================================================
+    // REPARTIR DESDE MAZO
     // =========================================================
 
     private void repartirDesdeMazo(
@@ -2018,62 +1746,71 @@ public class PokerInterfaz extends Application {
             Carta carta) {
 
 
-        Bounds posicionMazo =
+        Bounds origen =
                 mazo.localToScene(
                         mazo.getBoundsInLocal()
                 );
 
 
-        Bounds posicionDestino =
+        Bounds destinoFinal =
                 destino.localToScene(
                         destino.getBoundsInLocal()
                 );
 
 
-        double origenX =
-                posicionMazo.getCenterX()
-                        -
-                        posicionDestino.getCenterX();
+        double x =
+                origen.getCenterX()
+                        - destinoFinal.getCenterX();
 
 
-        double origenY =
-                posicionMazo.getCenterY()
-                        -
-                        posicionDestino.getCenterY();
+        double y =
+                origen.getCenterY()
+                        - destinoFinal.getCenterY();
 
 
         destino.repartirDesde(
                 carta,
-                origenX,
-                origenY
+                x,
+                y
         );
     }
 
 
     // =========================================================
-    // OCULTAR CARTAS
+    // MOSTRAR RESULTADO VISUAL
     // =========================================================
 
-    private void ocultarCartas(
-            List<CartaVista> cartas) {
+    private void mostrarResultadoVisual(
+            Label label) {
 
 
-        for (CartaVista carta
-                : cartas) {
+        label.setVisible(
+                true
+        );
 
 
-            carta.quitarDestacado();
+        label.setManaged(
+                true
+        );
+    }
 
-            carta.setVisible(false);
 
-            carta.setTranslateX(0);
-            carta.setTranslateY(0);
+    // =========================================================
+    // OCULTAR RESULTADO VISUAL
+    // =========================================================
 
-            carta.setScaleX(1);
-            carta.setScaleY(1);
+    private void ocultarResultadoVisual(
+            Label label) {
 
-            carta.setRotate(0);
-        }
+
+        label.setVisible(
+                false
+        );
+
+
+        label.setManaged(
+                false
+        );
     }
 
 
@@ -2121,7 +1858,7 @@ public class PokerInterfaz extends Application {
     // =========================================================
 
     private void cargarFichero(
-            String nombreFichero,
+            String nombre,
             TextArea entrada,
             TextArea resultado,
             Label contador) {
@@ -2129,18 +1866,17 @@ public class PokerInterfaz extends Application {
 
         try {
 
-
             List<String> lineas =
                     Utils.leerFichero(
-                            nombreFichero
+                            nombre
                     );
 
 
             entrada.clear();
 
 
-            for (String linea
-                    : lineas) {
+            for (String linea :
+                    lineas) {
 
 
                 entrada.appendText(
@@ -2163,10 +1899,9 @@ public class PokerInterfaz extends Application {
 
         } catch (IOException e) {
 
-
             entrada.setText(
                     "Error al cargar "
-                            + nombreFichero
+                            + nombre
                             + ": "
                             + e.getMessage()
             );
