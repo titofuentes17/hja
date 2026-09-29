@@ -65,9 +65,11 @@ public class Jugador implements Comparable<Jugador> {
 	}
 
 
-	// Devuelve los draws posibles (vacío si ya están las 5 cartas comunes)
+	// Devuelve los draws posibles (vacío si ya están las 5 cartas comunes).
+	// Se pasa la categoría de la mejor mano para no dar draws de jugadas ya hechas
 	public List<String> getDraws() {
-		return Evaluador.obtenerDrawsApartado2(getDisponibles(), mesa.size());
+		return Evaluador.obtenerDrawsApartado2(getDisponibles(), mesa.size(),
+				getMejorMano().getCategoria());
 	}
 
 

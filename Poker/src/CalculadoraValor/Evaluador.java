@@ -6,7 +6,15 @@ public class Evaluador {
 	private Evaluador() {}
 	
 	
+	//Draws del apartado 1: se detectan y se quitan los de jugadas ya hechas
 	public static List<String> obtenerDraws(List<Carta> cartas) {
+		int categoria = evaluarMano(new ArrayList<>(cartas)).getCategoria();
+		return quitarDrawsCompletados(detectarDraws(cartas), categoria);
+	}
+	
+	
+	//Detecta los draws de 5 cartas, sin mirar si la jugada ya está hecha
+	private static List<String> detectarDraws(List<Carta> cartas) {
         List<String> draws = new ArrayList<>();
 
         // Flush Draw
@@ -421,7 +429,8 @@ public class Evaluador {
 	//ObtenerDraws para el apartado 2
 	public static List<String> obtenerDrawsApartado2(
 	        List<Carta> disponibles,
-	        int numComunes) {
+	        int numComunes,
+	        int categoriaMejorMano) {
 
 	    List<String> resultado = new ArrayList<>();
 
@@ -432,31 +441,14 @@ public class Evaluador {
 	    }
 
 
-	    // Si tenemos 5 cartas disponibles,
-	    // podemos utilizar directamente el método del apartado 1
-	    if (disponibles.size() == 5) {
-
-	        resultado.addAll(
-	                obtenerDraws(disponibles)
-	        );
-
-	        return resultado;
-	    }
-
-
-	    // Si tenemos 6 cartas disponibles,
-	    // generamos todas las combinaciones de 5
+	    // Buscamos los draws de cada combinación de 5 cartas
+	    // (con 5 cartas disponibles solo hay una combinación)
 	    List<List<Carta>> combinaciones =
 	            Utils.generarCombinaciones5(disponibles);
 
-
-	    // Buscamos los draws de cada combinación
 	    for (List<Carta> combinacion : combinaciones) {
 
-	        List<String> draws =
-	                obtenerDraws(combinacion);
-
-	        for (String draw : draws) {
+	        for (String draw : detectarDraws(combinacion)) {
 
 	            // Evitamos añadir el mismo draw varias veces
 	            if (!resultado.contains(draw)) {
@@ -465,14 +457,39 @@ public class Evaluador {
 	        }
 	    }
 
-	    
-	 // Si tenemos un proyecto de escalera abierta,
-	 // no mostramos también Gutshot
-	 if (resultado.contains("Draw: Straight Open-ended")) {
-	     resultado.remove("Draw: Straight Gutshot");
-	 }
-	 
-	 
+
+	    // Si tenemos un proyecto de escalera abierta,
+	    // no mostramos también Gutshot
+	    if (resultado.contains("Draw: Straight Open-ended")) {
+	        resultado.remove("Draw: Straight Gutshot");
+	    }
+
+
+	    // Quitamos los draws de jugadas que ya tenemos hechas
+	    return quitarDrawsCompletados(resultado, categoriaMejorMano);
+	}
+	
+	
+	//Quita los draws que ya no tienen sentido por la mejor mano actual:
+	//con escalera (5) o mejor no hay proyecto de escalera, y con
+	//color (6) o mejor no hay proyecto de color
+	private static List<String> quitarDrawsCompletados(
+	        List<String> draws,
+	        int categoria) {
+
+	    List<String> resultado = new ArrayList<>();
+
+	    for (String draw : draws) {
+
+	        boolean drawEscalera = draw.startsWith("Draw: Straight");
+	        boolean drawColor = draw.equals("Draw: Flush");
+
+	        if (drawEscalera && categoria >= 5) continue;
+	        if (drawColor && categoria >= 6) continue;
+
+	        resultado.add(draw);
+	    }
+
 	    return resultado;
 	}
 	
