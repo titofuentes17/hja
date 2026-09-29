@@ -18,8 +18,8 @@ public class CartaVista extends StackPane {
     // TAMAÑO DE LA CARTA
     // =========================================================
 
-    private static final double ANCHO = 65;
-    private static final double ALTO = 90;
+    private static final double ANCHO = 66;
+    private static final double ALTO = 88;
 
 
     // =========================================================
@@ -27,25 +27,31 @@ public class CartaVista extends StackPane {
     // =========================================================
 
     /*
-     * Este rectángulo sirve para:
+     * Rectángulo situado detrás de la imagen.
      *
-     * - mostrar el reverso de la carta
-     * - poner el borde negro
-     * - poner el borde dorado al destacar
+     * Nos sirve principalmente para:
+     * - poner un fondo blanco
+     * - dibujar el borde normal
+     * - dibujar el borde dorado cuando la carta forma
+     *   parte de la mejor mano
      */
     private Rectangle fondo;
 
 
     /*
-     * Aquí se mostrará el PNG de la carta.
+     * Aquí mostramos tanto:
+     *
+     * - el reverso rojo
+     * - la cara de la carta
      */
     private ImageView imagenCarta;
 
 
     /*
-     * Carta que se está mostrando actualmente.
+     * Carta que se está mostrando.
      *
-     * null = estamos mostrando el reverso.
+     * Si vale null significa que estamos viendo
+     * el reverso.
      */
     private Carta cartaActual;
 
@@ -56,56 +62,47 @@ public class CartaVista extends StackPane {
 
     public CartaVista() {
 
-        setAlignment(
-                Pos.CENTER
+        setAlignment(Pos.CENTER);
+
+
+        // =====================================================
+        // FONDO
+        // =====================================================
+
+        fondo = new Rectangle(
+                ANCHO,
+                ALTO
         );
 
+        fondo.setArcWidth(8);
+        fondo.setArcHeight(8);
 
-        // =====================================================
-        // FONDO / BORDE
-        // =====================================================
-
-        fondo =
-                new Rectangle(
-                        ANCHO,
-                        ALTO
-                );
-
-
-        fondo.setArcWidth(12);
-        fondo.setArcHeight(12);
+        fondo.setFill(Color.WHITE);
+        fondo.setStroke(Color.BLACK);
+        fondo.setStrokeWidth(2);
 
 
         // =====================================================
         // IMAGEN
         // =====================================================
 
-        imagenCarta =
-                new ImageView();
+        imagenCarta = new ImageView();
 
-
-        imagenCarta.setFitWidth(
-                ANCHO - 4
-        );
-
-
-        imagenCarta.setFitHeight(
-                ALTO - 4
-        );
-
+        imagenCarta.setFitWidth(ANCHO);
+        imagenCarta.setFitHeight(ALTO);
 
         /*
-         * false porque queremos que todas
-         * tengan exactamente el mismo tamaño.
+         * Muy importante:
+         *
+         * evita que las imágenes se deformen.
          */
-        imagenCarta.setPreserveRatio(
-                false
-        );
+        imagenCarta.setPreserveRatio(true);
 
-
-        imagenCarta.setSmooth(
-                true
-        );
+        /*
+         * Hace que JavaFX suavice la imagen
+         * cuando cambia de tamaño.
+         */
+        imagenCarta.setSmooth(true);
 
 
         // =====================================================
@@ -118,7 +115,9 @@ public class CartaVista extends StackPane {
         );
 
 
-        // Empezamos mostrando el reverso.
+        /*
+         * Todas las cartas empiezan boca abajo.
+         */
         mostrarReverso();
     }
 
@@ -129,34 +128,82 @@ public class CartaVista extends StackPane {
 
     public void mostrarReverso() {
 
+        /*
+         * No hay ninguna carta visible por delante.
+         */
         cartaActual = null;
 
 
-        /*
-         * Ocultamos el PNG.
-         */
-        imagenCarta.setImage(
-                null
-        );
+        String ruta =
+                "/CalculadoraValor/cartas/detras_carta.png";
 
+
+        var recurso =
+                getClass().getResource(ruta);
+
+
+        // =====================================================
+        // SI NO ENCONTRAMOS LA IMAGEN
+        // =====================================================
+
+        if (recurso == null) {
+
+            System.err.println(
+                    "No se encontró la imagen del reverso: "
+                            + ruta
+            );
+
+
+            imagenCarta.setImage(null);
+            imagenCarta.setVisible(false);
+
+
+            /*
+             * Reverso azul de emergencia.
+             *
+             * Así la aplicación sigue funcionando
+             * aunque falte el PNG.
+             */
+            fondo.setFill(
+                    Color.web("#163A70")
+            );
+
+            fondo.setStroke(
+                    Color.WHITE
+            );
+
+            fondo.setStrokeWidth(2);
+
+            return;
+        }
+
+
+        // =====================================================
+        // CARGAR REVERSO
+        // =====================================================
+
+        Image imagenReverso =
+                new Image(
+                        recurso.toExternalForm()
+                );
+
+
+        imagenCarta.setImage(
+                imagenReverso
+        );
 
         imagenCarta.setVisible(
-                false
+                true
         );
 
 
-        /*
-         * Reverso azul.
-         */
         fondo.setFill(
-                Color.web("#163A70")
-        );
-
-
-        fondo.setStroke(
                 Color.WHITE
         );
 
+        fondo.setStroke(
+                Color.BLACK
+        );
 
         fondo.setStrokeWidth(
                 2
@@ -165,15 +212,12 @@ public class CartaVista extends StackPane {
 
 
     // =========================================================
-    // MOSTRAR CARTA
+    // MOSTRAR CARA DE LA CARTA
     // =========================================================
 
-    public void mostrarCarta(
-            Carta carta) {
+    public void mostrarCarta(Carta carta) {
 
-
-        cartaActual =
-                carta;
+        cartaActual = carta;
 
 
         String ruta =
@@ -182,37 +226,37 @@ public class CartaVista extends StackPane {
                 );
 
 
-        /*
-         * Buscamos la imagen dentro del proyecto.
-         *
-         * Ejemplo:
-         *
-         * /CalculadoraValor/cartas/ace_of_hearts.png
-         */
         var recurso =
-                getClass()
-                        .getResource(
-                                ruta
-                        );
+                getClass().getResource(
+                        ruta
+                );
 
+
+        // =====================================================
+        // COMPROBAR QUE EXISTE
+        // =====================================================
 
         if (recurso == null) {
 
-            /*
-             * Si esto ocurre significa que la
-             * imagen no está donde esperamos.
-             */
             System.err.println(
-                    "No se encontró la imagen: "
+                    "No se encontró la imagen de la carta: "
                             + ruta
             );
 
 
+            /*
+             * Si algo falla volvemos al reverso
+             * para que no quede una carta vacía.
+             */
             mostrarReverso();
 
             return;
         }
 
+
+        // =====================================================
+        // CARGAR IMAGEN
+        // =====================================================
 
         Image imagen =
                 new Image(
@@ -224,25 +268,18 @@ public class CartaVista extends StackPane {
                 imagen
         );
 
-
         imagenCarta.setVisible(
                 true
         );
 
 
-        /*
-         * Fondo blanco por si el PNG
-         * tiene alguna transparencia.
-         */
         fondo.setFill(
                 Color.WHITE
         );
 
-
         fondo.setStroke(
                 Color.BLACK
         );
-
 
         fondo.setStrokeWidth(
                 2
@@ -251,12 +288,10 @@ public class CartaVista extends StackPane {
 
 
     // =========================================================
-    // CONVERTIR CARTA -> RUTA PNG
+    // OBTENER RUTA DEL PNG
     // =========================================================
 
-    private String obtenerRutaImagen(
-            Carta carta) {
-
+    private String obtenerRutaImagen(Carta carta) {
 
         String valor =
                 convertirValor(
@@ -271,14 +306,15 @@ public class CartaVista extends StackPane {
 
 
         /*
-         * Ejemplos:
+         * Algunos ejemplos:
          *
          * Ah -> ace_of_hearts.png
-         * Kd -> king_of_diamonds.png
-         * Qs -> queen_of_spades.png
-         * Jc -> jack_of_clubs.png
-         * Th -> 10_of_hearts.png
-         * 8s -> 8_of_spades.png
+         * Ad -> ace_of_diamonds.png
+         * Ks -> king_of_spades.png
+         * Qc -> queen_of_clubs.png
+         * Jh -> jack_of_hearts.png
+         * Td -> 10_of_diamonds.png
+         * 9s -> 9_of_spades.png
          */
 
         return "/CalculadoraValor/cartas/"
@@ -293,31 +329,22 @@ public class CartaVista extends StackPane {
     // CONVERTIR VALOR
     // =========================================================
 
-    private String convertirValor(
-            char valor) {
-
+    private String convertirValor(char valor) {
 
         return switch (valor) {
 
-            case 'A' ->
-                    "ace";
+            case 'A' -> "ace";
 
-            case 'K' ->
-                    "king";
+            case 'K' -> "king";
 
-            case 'Q' ->
-                    "queen";
+            case 'Q' -> "queen";
 
-            case 'J' ->
-                    "jack";
+            case 'J' -> "jack";
 
-            case 'T' ->
-                    "10";
+            case 'T' -> "10";
 
             default ->
-                    String.valueOf(
-                            valor
-                    );
+                    String.valueOf(valor);
         };
     }
 
@@ -326,26 +353,19 @@ public class CartaVista extends StackPane {
     // CONVERTIR PALO
     // =========================================================
 
-    private String convertirPalo(
-            char palo) {
-
+    private String convertirPalo(char palo) {
 
         return switch (palo) {
 
-            case 'h' ->
-                    "hearts";
+            case 'h' -> "hearts";
 
-            case 'd' ->
-                    "diamonds";
+            case 'd' -> "diamonds";
 
-            case 'c' ->
-                    "clubs";
+            case 'c' -> "clubs";
 
-            case 's' ->
-                    "spades";
+            case 's' -> "spades";
 
-            default ->
-                    "";
+            default -> "";
         };
     }
 
@@ -354,15 +374,21 @@ public class CartaVista extends StackPane {
     // VOLTEAR CARTA
     // =========================================================
 
-    public void voltear(
-            Carta carta) {
-
+    public void voltear(Carta carta) {
 
         /*
-         * Primera mitad:
-         *
-         * la carta gira de 0º a 90º.
+         * Queremos que la carta gire
+         * alrededor del eje vertical.
          */
+        setRotationAxis(
+                Rotate.Y_AXIS
+        );
+
+
+        // =====================================================
+        // PRIMERA MITAD
+        // =====================================================
+
         RotateTransition primeraMitad =
                 new RotateTransition(
                         Duration.millis(200),
@@ -370,42 +396,39 @@ public class CartaVista extends StackPane {
                 );
 
 
-        primeraMitad.setAxis(
-                Rotate.Y_AXIS
-        );
+        /*
+         * Reverso:
+         *
+         * 0º ------> 90º
+         */
+        primeraMitad.setFromAngle(0);
 
-
-        primeraMitad.setFromAngle(
-                0
-        );
-
-
-        primeraMitad.setToAngle(
-                90
-        );
+        primeraMitad.setToAngle(90);
 
 
         // =====================================================
-        // AL LLEGAR A 90º CAMBIAMOS LA IMAGEN
+        // CUANDO LA CARTA ESTÁ DE PERFIL
         // =====================================================
 
         primeraMitad.setOnFinished(
                 evento -> {
 
-
-                    mostrarCarta(
-                            carta
-                    );
+                    /*
+                     * En este instante cambiamos el
+                     * reverso por la cara real.
+                     */
+                    mostrarCarta(carta);
 
 
                     /*
-                     * Empezamos la segunda mitad
-                     * desde -90º.
+                     * Colocamos la cara a -90º.
                      */
-                    setRotate(
-                            -90
-                    );
+                    setRotate(-90);
 
+
+                    // =========================================
+                    // SEGUNDA MITAD
+                    // =========================================
 
                     RotateTransition segundaMitad =
                             new RotateTransition(
@@ -414,19 +437,14 @@ public class CartaVista extends StackPane {
                             );
 
 
-                    segundaMitad.setAxis(
-                            Rotate.Y_AXIS
-                    );
+                    /*
+                     * Cara:
+                     *
+                     * -90º ------> 0º
+                     */
+                    segundaMitad.setFromAngle(-90);
 
-
-                    segundaMitad.setFromAngle(
-                            -90
-                    );
-
-
-                    segundaMitad.setToAngle(
-                            0
-                    );
+                    segundaMitad.setToAngle(0);
 
 
                     segundaMitad.play();
@@ -449,45 +467,36 @@ public class CartaVista extends StackPane {
 
 
         /*
-         * Hacemos visible la carta.
+         * Hacemos visible el hueco de la carta.
          */
-        setVisible(
-                true
-        );
+        setVisible(true);
 
 
         /*
-         * Primero mostramos el reverso.
+         * Siempre sale del crupier boca abajo.
          */
         mostrarReverso();
 
 
         /*
-         * Colocamos visualmente la carta
-         * sobre el mazo.
+         * Situamos visualmente la carta
+         * encima del mazo del crupier.
          */
-        setTranslateX(
-                origenX
-        );
+        setTranslateX(origenX);
+
+        setTranslateY(origenY);
 
 
-        setTranslateY(
-                origenY
-        );
+        /*
+         * Sale ligeramente más pequeña.
+         */
+        setScaleX(0.75);
 
-
-        setScaleX(
-                0.75
-        );
-
-
-        setScaleY(
-                0.75
-        );
+        setScaleY(0.75);
 
 
         // =====================================================
-        // MOVIMIENTO DESDE EL CRUPIER
+        // ANIMACIÓN DEL REPARTO
         // =====================================================
 
         TranslateTransition movimiento =
@@ -497,41 +506,34 @@ public class CartaVista extends StackPane {
                 );
 
 
-        movimiento.setToX(
-                0
-        );
+        /*
+         * La posición final natural de la
+         * CartaVista es 0, 0.
+         */
+        movimiento.setToX(0);
 
-
-        movimiento.setToY(
-                0
-        );
+        movimiento.setToY(0);
 
 
         // =====================================================
-        // CUANDO LLEGA...
+        // AL LLEGAR A SU SITIO
         // =====================================================
 
         movimiento.setOnFinished(
                 evento -> {
 
+                    /*
+                     * Recuperamos tamaño normal.
+                     */
+                    setScaleX(1);
 
-                    setScaleX(
-                            1
-                    );
-
-
-                    setScaleY(
-                            1
-                    );
+                    setScaleY(1);
 
 
                     /*
-                     * Giramos la carta y
-                     * mostramos el PNG.
+                     * Y volteamos la carta.
                      */
-                    voltear(
-                            carta
-                    );
+                    voltear(carta);
                 }
         );
 
@@ -546,10 +548,19 @@ public class CartaVista extends StackPane {
 
     public void destacar() {
 
-
         /*
-         * Pequeño temblor horizontal.
+         * No hacemos nada si la carta
+         * ni siquiera está visible.
          */
+        if (!isVisible()) {
+            return;
+        }
+
+
+        // =====================================================
+        // PEQUEÑO TEMBLOR
+        // =====================================================
+
         TranslateTransition temblor =
                 new TranslateTransition(
                         Duration.millis(65),
@@ -557,38 +568,26 @@ public class CartaVista extends StackPane {
                 );
 
 
-        temblor.setFromX(
-                -3
-        );
+        temblor.setFromX(-3);
+
+        temblor.setToX(3);
 
 
-        temblor.setToX(
-                3
-        );
+        temblor.setAutoReverse(true);
+
+        temblor.setCycleCount(6);
 
 
-        temblor.setAutoReverse(
-                true
-        );
-
-
-        temblor.setCycleCount(
-                6
-        );
-
+        // =====================================================
+        // BORDE DORADO
+        // =====================================================
 
         temblor.setOnFinished(
                 evento -> {
 
-
-                    setTranslateX(
-                            0
-                    );
+                    setTranslateX(0);
 
 
-                    /*
-                     * Borde dorado.
-                     */
                     fondo.setStroke(
                             Color.GOLD
                     );
@@ -611,29 +610,32 @@ public class CartaVista extends StackPane {
 
     public void quitarDestacado() {
 
-
-        setTranslateX(
-                0
-        );
+        setTranslateX(0);
 
 
+        /*
+         * Carta boca arriba.
+         */
         if (cartaActual != null) {
 
             fondo.setStroke(
                     Color.BLACK
             );
 
-
             fondo.setStrokeWidth(
                     2
             );
+        }
 
-        } else {
+
+        /*
+         * Carta boca abajo.
+         */
+        else {
 
             fondo.setStroke(
-                    Color.WHITE
+                    Color.BLACK
             );
-
 
             fondo.setStrokeWidth(
                     2
@@ -643,7 +645,7 @@ public class CartaVista extends StackPane {
 
 
     // =========================================================
-    // CARTA ACTUAL
+    // OBTENER CARTA ACTUAL
     // =========================================================
 
     public Carta getCartaActual() {
@@ -653,16 +655,13 @@ public class CartaVista extends StackPane {
 
 
     // =========================================================
-    // COMPROBAR SI REPRESENTA UNA CARTA
+    // COMPROBAR SI ESTA VISTA REPRESENTA UNA CARTA
     // =========================================================
 
-    public boolean representa(
-            Carta carta) {
-
+    public boolean representa(Carta carta) {
 
         if (cartaActual == null
                 || carta == null) {
-
 
             return false;
         }
