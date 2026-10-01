@@ -105,10 +105,24 @@ public class Main {
             }
             
             else if (apartado == 4) {
-            	System.out.println("El apartado " + apartado + " aún no está implementado.");
-                return;
-            	
-            	
+                for (String linea : lineasEntrada) {
+                    // Formato: Carta_1Carta_2Carta_3Carta_4;n;CartasComunes
+                    String[] partes = linea.split(";");
+                    List<Carta> propias = Utils.parsearCartas(partes[0]);
+                    List<Carta> mesa = Utils.parsearCartas(partes[2]);
+
+                    // El jugador de Omaha se encarga de calcular su mejor mano y sus draws
+                    JugadorOmaha jugador = new JugadorOmaha(propias, mesa);
+
+                    lineasSalida.add(linea);
+                    lineasSalida.add("- Best hand: " + jugador.getMejorManoTexto());
+                    for (String draw : jugador.getDraws()) {
+                        lineasSalida.add("- " + draw);
+                    }
+
+                    // Línea en blanco entre manos
+                    lineasSalida.add("");
+                }
             }
             
             
