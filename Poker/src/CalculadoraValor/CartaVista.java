@@ -69,10 +69,7 @@ public class CartaVista extends StackPane {
         // FONDO
         // =====================================================
 
-        fondo = new Rectangle(
-                ANCHO,
-                ALTO
-        );
+        fondo = new Rectangle(ANCHO, ALTO);
 
         fondo.setArcWidth(8);
         fondo.setArcHeight(8);
@@ -109,10 +106,7 @@ public class CartaVista extends StackPane {
         // AÑADIR ELEMENTOS
         // =====================================================
 
-        getChildren().addAll(
-                fondo,
-                imagenCarta
-        );
+        getChildren().addAll(fondo, imagenCarta);
 
 
         /*
@@ -134,12 +128,10 @@ public class CartaVista extends StackPane {
         cartaActual = null;
 
 
-        String ruta =
-                "/CalculadoraValor/cartas/detras_carta.png";
+        String ruta = "/CalculadoraValor/cartas/detras_carta.png";
 
 
-        var recurso =
-                getClass().getResource(ruta);
+        var recurso = getClass().getResource(ruta);
 
 
         // =====================================================
@@ -148,10 +140,7 @@ public class CartaVista extends StackPane {
 
         if (recurso == null) {
 
-            System.err.println(
-                    "No se encontró la imagen del reverso: "
-                            + ruta
-            );
+            System.err.println("No se encontró la imagen del reverso: " + ruta);
 
 
             imagenCarta.setImage(null);
@@ -164,13 +153,9 @@ public class CartaVista extends StackPane {
              * Así la aplicación sigue funcionando
              * aunque falte el PNG.
              */
-            fondo.setFill(
-                    Color.web("#163A70")
-            );
+            fondo.setFill(Color.web("#163A70"));
 
-            fondo.setStroke(
-                    Color.WHITE
-            );
+            fondo.setStroke(Color.WHITE);
 
             fondo.setStrokeWidth(2);
 
@@ -182,32 +167,19 @@ public class CartaVista extends StackPane {
         // CARGAR REVERSO
         // =====================================================
 
-        Image imagenReverso =
-                new Image(
-                        recurso.toExternalForm()
-                );
+        Image imagenReverso = new Image(recurso.toExternalForm());
 
 
-        imagenCarta.setImage(
-                imagenReverso
-        );
+        imagenCarta.setImage(imagenReverso);
 
-        imagenCarta.setVisible(
-                true
-        );
+        imagenCarta.setVisible(true);
 
 
-        fondo.setFill(
-                Color.WHITE
-        );
+        fondo.setFill(Color.WHITE);
 
-        fondo.setStroke(
-                Color.BLACK
-        );
+        fondo.setStroke(Color.BLACK);
 
-        fondo.setStrokeWidth(
-                2
-        );
+        fondo.setStrokeWidth(2);
     }
 
 
@@ -220,16 +192,10 @@ public class CartaVista extends StackPane {
         cartaActual = carta;
 
 
-        String ruta =
-                obtenerRutaImagen(
-                        carta
-                );
+        String ruta = obtenerRutaImagen(carta);
 
 
-        var recurso =
-                getClass().getResource(
-                        ruta
-                );
+        var recurso = getClass().getResource(ruta);
 
 
         // =====================================================
@@ -238,10 +204,7 @@ public class CartaVista extends StackPane {
 
         if (recurso == null) {
 
-            System.err.println(
-                    "No se encontró la imagen de la carta: "
-                            + ruta
-            );
+            System.err.println("No se encontró la imagen de la carta: " + ruta);
 
 
             /*
@@ -258,32 +221,19 @@ public class CartaVista extends StackPane {
         // CARGAR IMAGEN
         // =====================================================
 
-        Image imagen =
-                new Image(
-                        recurso.toExternalForm()
-                );
+        Image imagen = new Image(recurso.toExternalForm());
 
 
-        imagenCarta.setImage(
-                imagen
-        );
+        imagenCarta.setImage(imagen);
 
-        imagenCarta.setVisible(
-                true
-        );
+        imagenCarta.setVisible(true);
 
 
-        fondo.setFill(
-                Color.WHITE
-        );
+        fondo.setFill(Color.WHITE);
 
-        fondo.setStroke(
-                Color.BLACK
-        );
+        fondo.setStroke(Color.BLACK);
 
-        fondo.setStrokeWidth(
-                2
-        );
+        fondo.setStrokeWidth(2);
     }
 
 
@@ -293,16 +243,10 @@ public class CartaVista extends StackPane {
 
     private String obtenerRutaImagen(Carta carta) {
 
-        String valor =
-                convertirValor(
-                        carta.getValor()
-                );
+        String valor = convertirValor(carta.getValor());
 
 
-        String palo =
-                convertirPalo(
-                        carta.getPalo()
-                );
+        String palo = convertirPalo(carta.getPalo());
 
 
         /*
@@ -380,20 +324,14 @@ public class CartaVista extends StackPane {
          * Queremos que la carta gire
          * alrededor del eje vertical.
          */
-        setRotationAxis(
-                Rotate.Y_AXIS
-        );
+        setRotationAxis(Rotate.Y_AXIS);
 
 
         // =====================================================
         // PRIMERA MITAD
         // =====================================================
 
-        RotateTransition primeraMitad =
-                new RotateTransition(
-                        Duration.millis(200),
-                        this
-                );
+        RotateTransition primeraMitad = new RotateTransition(Duration.millis(200), this);
 
 
         /*
@@ -410,9 +348,7 @@ public class CartaVista extends StackPane {
         // CUANDO LA CARTA ESTÁ DE PERFIL
         // =====================================================
 
-        primeraMitad.setOnFinished(
-                evento -> {
-
+        primeraMitad.setOnFinished(evento -> {
                     /*
                      * En este instante cambiamos el
                      * reverso por la cara real.
@@ -430,11 +366,7 @@ public class CartaVista extends StackPane {
                     // SEGUNDA MITAD
                     // =========================================
 
-                    RotateTransition segundaMitad =
-                            new RotateTransition(
-                                    Duration.millis(200),
-                                    this
-                            );
+                    RotateTransition segundaMitad = new RotateTransition(Duration.millis(200), this);
 
 
                     /*
@@ -460,10 +392,7 @@ public class CartaVista extends StackPane {
     // REPARTIR DESDE EL MAZO
     // =========================================================
 
-    public void repartirDesde(
-            Carta carta,
-            double origenX,
-            double origenY) {
+    public void repartirDesde(Carta carta, double origenX, double origenY) {
 
 
         /*
@@ -499,11 +428,7 @@ public class CartaVista extends StackPane {
         // ANIMACIÓN DEL REPARTO
         // =====================================================
 
-        TranslateTransition movimiento =
-                new TranslateTransition(
-                        Duration.millis(350),
-                        this
-                );
+        TranslateTransition movimiento = new TranslateTransition(Duration.millis(350), this);
 
 
         /*
@@ -519,9 +444,7 @@ public class CartaVista extends StackPane {
         // AL LLEGAR A SU SITIO
         // =====================================================
 
-        movimiento.setOnFinished(
-                evento -> {
-
+        movimiento.setOnFinished(evento -> {
                     /*
                      * Recuperamos tamaño normal.
                      */
@@ -561,11 +484,7 @@ public class CartaVista extends StackPane {
         // PEQUEÑO TEMBLOR
         // =====================================================
 
-        TranslateTransition temblor =
-                new TranslateTransition(
-                        Duration.millis(65),
-                        this
-                );
+        TranslateTransition temblor = new TranslateTransition(Duration.millis(65), this);
 
 
         temblor.setFromX(-3);
@@ -582,20 +501,14 @@ public class CartaVista extends StackPane {
         // BORDE DORADO
         // =====================================================
 
-        temblor.setOnFinished(
-                evento -> {
-
+        temblor.setOnFinished(evento -> {
                     setTranslateX(0);
 
 
-                    fondo.setStroke(
-                            Color.GOLD
-                    );
+                    fondo.setStroke(Color.GOLD);
 
 
-                    fondo.setStrokeWidth(
-                            4
-                    );
+                    fondo.setStrokeWidth(4);
                 }
         );
 
@@ -618,13 +531,9 @@ public class CartaVista extends StackPane {
          */
         if (cartaActual != null) {
 
-            fondo.setStroke(
-                    Color.BLACK
-            );
+            fondo.setStroke(Color.BLACK);
 
-            fondo.setStrokeWidth(
-                    2
-            );
+            fondo.setStrokeWidth(2);
         }
 
 
@@ -633,13 +542,9 @@ public class CartaVista extends StackPane {
          */
         else {
 
-            fondo.setStroke(
-                    Color.BLACK
-            );
+            fondo.setStroke(Color.BLACK);
 
-            fondo.setStrokeWidth(
-                    2
-            );
+            fondo.setStrokeWidth(2);
         }
     }
 
@@ -660,8 +565,7 @@ public class CartaVista extends StackPane {
 
     public boolean representa(Carta carta) {
 
-        if (cartaActual == null
-                || carta == null) {
+        if (cartaActual == null || carta == null) {
 
             return false;
         }

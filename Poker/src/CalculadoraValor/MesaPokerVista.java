@@ -61,171 +61,100 @@ public class MesaPokerVista extends Pane {
 
     public MesaPokerVista() {
 
-        setPrefSize(
-                ANCHO,
-                ALTO
-        );
+        setPrefSize(ANCHO, ALTO);
 
-        setMinSize(
-                ANCHO,
-                ALTO
-        );
+        setMinSize(ANCHO, ALTO);
 
-        setMaxSize(
-                ANCHO,
-                ALTO
-        );
+        setMaxSize(ANCHO, ALTO);
 
 
         // =====================================================
         // TAPETE
         // =====================================================
 
-        tapete = new Ellipse(
-                CENTRO_X,
-                CENTRO_Y,
-                RADIO_MESA_X,
-                RADIO_MESA_Y
-        );
+        tapete = new Ellipse(CENTRO_X, CENTRO_Y, RADIO_MESA_X, RADIO_MESA_Y);
 
 
-        tapete.setFill(
-                Color.web("#176B3A")
-        );
+        tapete.setFill(Color.web("#176B3A"));
 
 
-        tapete.setStroke(
-                Color.web("#4A2C17")
-        );
+        tapete.setStroke(Color.web("#4A2C17"));
 
 
         tapete.setStrokeWidth(8);
 
 
-        getChildren().add(
-                tapete
-        );
+        getChildren().add(tapete);
 
 
         // =====================================================
         // TÍTULO CENTRAL
         // =====================================================
 
-        tituloCentro =
-                new Label(
-                        "CARTAS"
-                );
+        tituloCentro = new Label("CARTAS");
 
 
-        tituloCentro.setStyle(
-                "-fx-font-size: 12px;" +
-                "-fx-font-weight: bold;" +
-                "-fx-text-fill: white;"
-        );
+        tituloCentro.setStyle("-fx-font-size: 12px;" + "-fx-font-weight: bold;" + "-fx-text-fill: white;");
 
 
-        tituloCentro.setPrefWidth(
-                300
-        );
+        tituloCentro.setPrefWidth(300);
 
 
-        tituloCentro.setAlignment(
-                Pos.CENTER
-        );
+        tituloCentro.setAlignment(Pos.CENTER);
 
 
-        tituloCentro.setLayoutX(
-                CENTRO_X - 150
-        );
+        tituloCentro.setLayoutX(CENTRO_X - 150);
 
 
-        tituloCentro.setLayoutY(
-                CENTRO_Y - 75
-        );
+        tituloCentro.setLayoutY(CENTRO_Y - 75);
 
 
-        getChildren().add(
-                tituloCentro
-        );
+        getChildren().add(tituloCentro);
 
 
         // =====================================================
         // ZONA CENTRAL DE CARTAS
         // =====================================================
 
-        cartasCentro =
-                new ArrayList<>();
+        cartasCentro = new ArrayList<>();
 
 
-        zonaCartasCentro =
-                new HBox(7);
+        zonaCartasCentro = new HBox(7);
 
 
-        zonaCartasCentro.setAlignment(
-                Pos.CENTER
-        );
+        zonaCartasCentro.setAlignment(Pos.CENTER);
 
-
-        /*
-         * Siempre tenemos capacidad para
-         * cinco cartas en el centro.
-         *
-         * Apartado 1:
-         * las 5 cartas de la mano.
-         *
-         * Apartado 2:
-         * las comunitarias.
-         *
-         * Apartado 3:
-         * las comunitarias.
-         */
 
         for (int i = 0; i < 5; i++) {
 
-            CartaVista carta =
-                    new CartaVista();
+            CartaVista carta = new CartaVista();
 
 
             carta.setVisible(false);
 
 
-            cartasCentro.add(
-                    carta
-            );
+            cartasCentro.add(carta);
 
 
             zonaCartasCentro
                     .getChildren()
-                    .add(
-                            carta
-                    );
+                    .add(carta);
         }
 
 
-        double anchoCartas =
-                5 * 65
-                        + 4 * 7;
+        double anchoCartas = 5 * 65 + 4 * 7;
 
 
-        zonaCartasCentro.setPrefWidth(
-                anchoCartas
-        );
+        zonaCartasCentro.setPrefWidth(anchoCartas);
 
 
-        zonaCartasCentro.setLayoutX(
-                CENTRO_X
-                        - anchoCartas / 2
-        );
+        zonaCartasCentro.setLayoutX(CENTRO_X - anchoCartas / 2);
 
 
-        zonaCartasCentro.setLayoutY(
-                CENTRO_Y - 45
-        );
+        zonaCartasCentro.setLayoutY(CENTRO_Y - 45);
 
 
-        getChildren().add(
-                zonaCartasCentro
-        );
+        getChildren().add(zonaCartasCentro);
     }
 
 
@@ -241,14 +170,10 @@ public class MesaPokerVista extends Pane {
         jugadorPrincipal = null;
 
 
-        tituloCentro.setText(
-                "MANO"
-        );
+        tituloCentro.setText("MANO");
 
 
-        tituloCentro.setVisible(
-                true
-        );
+        tituloCentro.setVisible(true);
 
 
         reiniciarCartasCentro();
@@ -259,25 +184,19 @@ public class MesaPokerVista extends Pane {
     // MODO APARTADO 2
     // =========================================================
 
-    public void prepararApartado2(
-            JugadorVista jugador) {
+    public void prepararApartado2(JugadorVista jugador) {
 
 
         limpiarJugadores();
 
 
-        jugadorPrincipal =
-                jugador;
+        jugadorPrincipal = jugador;
 
 
-        tituloCentro.setText(
-                "CARTAS COMUNITARIAS"
-        );
+        tituloCentro.setText("CARTAS COMUNITARIAS");
 
 
-        tituloCentro.setVisible(
-                true
-        );
+        tituloCentro.setVisible(true);
 
 
         reiniciarCartasCentro();
@@ -288,19 +207,13 @@ public class MesaPokerVista extends Pane {
          * inferior de la mesa.
          */
 
-        jugador.setLayoutX(
-                CENTRO_X - 70
-        );
+        jugador.setLayoutX(CENTRO_X - 70);
 
 
-        jugador.setLayoutY(
-                ALTO - 110
-        );
+        jugador.setLayoutY(ALTO - 110);
 
 
-        getChildren().add(
-                jugador
-        );
+        getChildren().add(jugador);
 
 
         /*
@@ -320,8 +233,7 @@ public class MesaPokerVista extends Pane {
     // MODO APARTADO 3
     // =========================================================
 
-    public void prepararApartado3(
-            List<JugadorVista> jugadores) {
+    public void prepararApartado3(List<JugadorVista> jugadores) {
 
 
         limpiarJugadores();
@@ -330,22 +242,16 @@ public class MesaPokerVista extends Pane {
         jugadorPrincipal = null;
 
 
-        tituloCentro.setText(
-                "CARTAS COMUNITARIAS"
-        );
+        tituloCentro.setText("CARTAS COMUNITARIAS");
 
 
-        tituloCentro.setVisible(
-                true
-        );
+        tituloCentro.setVisible(true);
 
 
         reiniciarCartasCentro();
 
 
-        colocarJugadores(
-                jugadores
-        );
+        colocarJugadores(jugadores);
     }
 
 
@@ -353,12 +259,10 @@ public class MesaPokerVista extends Pane {
     // COLOCAR JUGADORES
     // =========================================================
 
-    public void colocarJugadores(
-            List<JugadorVista> jugadores) {
+    public void colocarJugadores(List<JugadorVista> jugadores) {
 
 
-        int numeroJugadores =
-                jugadores.size();
+        int numeroJugadores = jugadores.size();
 
 
         if (numeroJugadores == 0) {
@@ -374,12 +278,10 @@ public class MesaPokerVista extends Pane {
          * alrededor de la mesa.
          */
 
-        double anguloInicial =
-                Math.PI / 2;
+        double anguloInicial = Math.PI / 2;
 
 
-        double paso =
-                (2 * Math.PI)
+        double paso = (2 * Math.PI)
                         / numeroJugadores;
 
 
@@ -388,44 +290,25 @@ public class MesaPokerVista extends Pane {
              i++) {
 
 
-            JugadorVista jugador =
-                    jugadores.get(i);
+            JugadorVista jugador = jugadores.get(i);
 
 
-            double angulo =
-                    anguloInicial
-                            + i * paso;
+            double angulo = anguloInicial + i * paso;
 
 
-            double x =
-                    CENTRO_X
-                            + RADIO_JUGADORES_X
-                            * Math.cos(
-                                    angulo
-                            );
+            double x = CENTRO_X + RADIO_JUGADORES_X * Math.cos(angulo);
 
 
-            double y =
-                    CENTRO_Y
-                            + RADIO_JUGADORES_Y
-                            * Math.sin(
-                                    angulo
-                            );
+            double y = CENTRO_Y + RADIO_JUGADORES_Y * Math.sin(angulo);
 
 
-            jugador.setLayoutX(
-                    x - 70
-            );
+            jugador.setLayoutX(x - 70);
 
 
-            jugador.setLayoutY(
-                    y - 55
-            );
+            jugador.setLayoutY(y - 55);
 
 
-            getChildren().add(
-                    jugador
-            );
+            getChildren().add(jugador);
         }
 
 
@@ -442,10 +325,7 @@ public class MesaPokerVista extends Pane {
     private void limpiarJugadores() {
 
         getChildren()
-                .removeIf(
-                        nodo ->
-                                nodo instanceof JugadorVista
-                );
+                .removeIf(nodo -> nodo instanceof JugadorVista);
     }
 
 
@@ -459,12 +339,9 @@ public class MesaPokerVista extends Pane {
     }
 
 
-    public CartaVista getCartaCentro(
-            int indice) {
+    public CartaVista getCartaCentro(int indice) {
 
-        return cartasCentro.get(
-                indice
-        );
+        return cartasCentro.get(indice);
     }
 
 
@@ -474,8 +351,7 @@ public class MesaPokerVista extends Pane {
 
     public void reiniciarCartasCentro() {
 
-        for (CartaVista carta :
-                cartasCentro) {
+        for (CartaVista carta : cartasCentro) {
 
 
             carta.quitarDestacado();
@@ -503,12 +379,9 @@ public class MesaPokerVista extends Pane {
     }
 
 
-    public CartaVista getCartaComunitaria(
-            int indice) {
+    public CartaVista getCartaComunitaria(int indice) {
 
-        return cartasCentro.get(
-                indice
-        );
+        return cartasCentro.get(indice);
     }
 
 

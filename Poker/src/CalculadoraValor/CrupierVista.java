@@ -38,25 +38,16 @@ public class CrupierVista extends VBox {
         // CARGAR MANOS
         // =====================================================
 
-        manoIzquierda =
-                cargarImagen(
-                        "/CalculadoraValor/imagenes/guante_izquierdo.png"
-                );
+        manoIzquierda = cargarImagen("/CalculadoraValor/imagenes/guante_izquierdo.png");
 
-
-        manoDerecha =
-                cargarImagen(
-                        "/CalculadoraValor/imagenes/guante_derecho.png"
-                );
+        manoDerecha = cargarImagen("/CalculadoraValor/imagenes/guante_derecho.png");
 
 
         // =====================================================
         // MAZO
         // =====================================================
 
-        mazo =
-                new CartaVista();
-
+        mazo = new CartaVista();
 
         mazo.setScaleX(0.70);
 
@@ -67,23 +58,11 @@ public class CrupierVista extends VBox {
         // FILA DEL CRUPIER
         // =====================================================
 
-        HBox manos =
-                new HBox(
-                        5,
-                        manoIzquierda,
-                        mazo,
-                        manoDerecha
-                );
+        HBox manos = new HBox(5, manoIzquierda, mazo, manoDerecha);
 
+        manos.setAlignment(Pos.CENTER);
 
-        manos.setAlignment(
-                Pos.CENTER
-        );
-
-
-        getChildren().add(
-                manos
-        );
+        getChildren().add(manos);
     }
 
 
@@ -91,39 +70,24 @@ public class CrupierVista extends VBox {
     // CARGAR IMAGEN
     // =========================================================
 
-    private ImageView cargarImagen(
-            String ruta) {
+    private ImageView cargarImagen(String ruta) {
 
-        var recurso =
-                getClass().getResource(
-                        ruta
-                );
+        var recurso = getClass().getResource(ruta);
 
-
-        ImageView imagen =
-                new ImageView();
+        ImageView imagen = new ImageView();
 
 
         if (recurso == null) {
 
-            System.err.println(
-                    "No se encontró la imagen: "
-                            + ruta
-            );
+            System.err.println("No se encontró la imagen: " + ruta);
 
             return imagen;
         }
 
 
-        Image archivo =
-                new Image(
-                        recurso.toExternalForm()
-                );
+        Image archivo = new Image(recurso.toExternalForm());
 
-
-        imagen.setImage(
-                archivo
-        );
+        imagen.setImage(archivo);
 
 
         /*
@@ -132,23 +96,15 @@ public class CrupierVista extends VBox {
          * Luego podemos ajustarlo dependiendo
          * de cómo quede visualmente.
          */
-        imagen.setFitWidth(
-                105
-        );
+        imagen.setFitWidth(105);
 
-        imagen.setFitHeight(
-                80
-        );
+        imagen.setFitHeight(80);
 
 
-        imagen.setPreserveRatio(
-                true
-        );
+        imagen.setPreserveRatio(true);
 
 
-        imagen.setSmooth(
-                true
-        );
+        imagen.setSmooth(true);
 
 
         return imagen;
@@ -159,9 +115,7 @@ public class CrupierVista extends VBox {
     // REPARTIR CARTA
     // =========================================================
 
-    public void repartirCarta(
-            CartaVista destino,
-            Carta carta) {
+    public void repartirCarta(CartaVista destino, Carta carta) {
 
         /*
          * IMPORTANTE:
@@ -172,73 +126,48 @@ public class CrupierVista extends VBox {
          * Visualmente corresponde a la mano
          * derecha del crupier.
          */
-        ImageView manoRepartidora =
-                manoIzquierda;
+        ImageView manoRepartidora = manoIzquierda;
 
 
         // =====================================================
         // POSICIÓN DEL MAZO
         // =====================================================
 
-        Bounds posicionMazo =
-                mazo.localToScene(
-                        mazo.getBoundsInLocal()
-                );
+        Bounds posicionMazo = mazo.localToScene(mazo.getBoundsInLocal());
 
 
         // =====================================================
         // POSICIÓN DE LA MANO
         // =====================================================
 
-        Bounds posicionMano =
-                manoRepartidora.localToScene(
-                        manoRepartidora.getBoundsInLocal()
-                );
+        Bounds posicionMano = manoRepartidora.localToScene(manoRepartidora.getBoundsInLocal());
 
 
         // =====================================================
         // POSICIÓN DEL DESTINO
         // =====================================================
 
-        Bounds posicionDestino =
-                destino.localToScene(
-                        destino.getBoundsInLocal()
-                );
+        Bounds posicionDestino = destino.localToScene(destino.getBoundsInLocal());
 
 
         /*
          * Primero calculamos cuánto tiene que moverse
          * la mano para llegar aproximadamente al mazo.
          */
-        double haciaMazoX =
-                posicionMazo.getCenterX()
-                        - posicionMano.getCenterX();
+        double haciaMazoX = posicionMazo.getCenterX() - posicionMano.getCenterX();
 
-
-        double haciaMazoY =
-                posicionMazo.getCenterY()
-                        - posicionMano.getCenterY();
+        double haciaMazoY = posicionMazo.getCenterY() - posicionMano.getCenterY();
 
 
         // =====================================================
         // 1. MANO HACIA EL MAZO
         // =====================================================
 
-        TranslateTransition cogerCarta =
-                new TranslateTransition(
-                        Duration.millis(180),
-                        manoRepartidora
-                );
+        TranslateTransition cogerCarta = new TranslateTransition(Duration.millis(180), manoRepartidora);
 
+        cogerCarta.setToX(haciaMazoX);
 
-        cogerCarta.setToX(
-                haciaMazoX
-        );
-
-
-        cogerCarta.setToY(
-                haciaMazoY
-        );
+        cogerCarta.setToY(haciaMazoY);
 
 
         // =====================================================
@@ -255,43 +184,18 @@ public class CrupierVista extends VBox {
          * Por eso recorremos aproximadamente un 40 %
          * de la distancia.
          */
-        double porcentajeRecorrido =
-                0.40;
+        double porcentajeRecorrido = 0.40;
+
+        double recorridoX = haciaMazoX + (posicionDestino.getCenterX() - posicionMazo.getCenterX()) * porcentajeRecorrido;
+
+        double recorridoY = haciaMazoY + (posicionDestino.getCenterY() - posicionMazo.getCenterY()) * porcentajeRecorrido;
 
 
-        double recorridoX =
-                haciaMazoX
-                        + (
-                        posicionDestino.getCenterX()
-                                - posicionMazo.getCenterX()
-                )
-                        * porcentajeRecorrido;
+        TranslateTransition empujarCarta = new TranslateTransition(Duration.millis(230), manoRepartidora);
 
+        empujarCarta.setToX(recorridoX);
 
-        double recorridoY =
-                haciaMazoY
-                        + (
-                        posicionDestino.getCenterY()
-                                - posicionMazo.getCenterY()
-                )
-                        * porcentajeRecorrido;
-
-
-        TranslateTransition empujarCarta =
-                new TranslateTransition(
-                        Duration.millis(230),
-                        manoRepartidora
-                );
-
-
-        empujarCarta.setToX(
-                recorridoX
-        );
-
-
-        empujarCarta.setToY(
-                recorridoY
-        );
+        empujarCarta.setToY(recorridoY);
 
 
         // =====================================================
@@ -302,64 +206,37 @@ public class CrupierVista extends VBox {
          * Calculamos desde dónde tiene que empezar
          * la animación de CartaVista.
          */
-        double cartaX =
-                posicionMazo.getCenterX()
-                        - posicionDestino.getCenterX();
+        double cartaX = posicionMazo.getCenterX() - posicionDestino.getCenterX();
 
-
-        double cartaY =
-                posicionMazo.getCenterY()
-                        - posicionDestino.getCenterY();
+        double cartaY = posicionMazo.getCenterY() - posicionDestino.getCenterY();
 
 
         /*
          * Cuando la mano ya está encima del mazo
          * empezamos a mover la carta.
          */
-        cogerCarta.setOnFinished(
-                evento -> {
+        cogerCarta.setOnFinished(evento -> {
 
-                    destino.repartirDesde(
-                            carta,
-                            cartaX,
-                            cartaY
-                    );
-                }
-        );
+            destino.repartirDesde(carta, cartaX, cartaY);
+        });
 
 
         // =====================================================
         // 3. MANO VUELVE A SU POSICIÓN
         // =====================================================
 
-        TranslateTransition volver =
-                new TranslateTransition(
-                        Duration.millis(250),
-                        manoRepartidora
-                );
+        TranslateTransition volver = new TranslateTransition(Duration.millis(250), manoRepartidora);
 
+        volver.setToX(0);
 
-        volver.setToX(
-                0
-        );
-
-
-        volver.setToY(
-                0
-        );
+        volver.setToY(0);
 
 
         // =====================================================
         // SECUENCIA COMPLETA
         // =====================================================
 
-        SequentialTransition movimiento =
-                new SequentialTransition(
-                        cogerCarta,
-                        empujarCarta,
-                        volver
-                );
-
+        SequentialTransition movimiento = new SequentialTransition(cogerCarta, empujarCarta, volver);
 
         movimiento.play();
     }
