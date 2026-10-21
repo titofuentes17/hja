@@ -14,6 +14,10 @@ import javafx.scene.layout.HBox;
 //   - el nombre de su mejor mano
 //   - un cuadro de texto de SOLO LECTURA con la equity
 //   - un cuadro de texto para introducir sus cartas manualmente (p.ej. AhKd)
+//   - su propio RANGO: un cuadro de texto (AA,KK,AKs,77+...) o un cuadro de
+//     porcentaje (top X % de manos). Son excluyentes: si se usa uno, el otro
+//     queda deshabilitado. El fondo del cuadro en uso se pone verde o rojo
+//     según la mano del jugador esté dentro o fuera del rango.
 public class AsientoVista extends JugadorVista {
 
     private static final String ESTILO_NORMAL =
@@ -30,6 +34,8 @@ public class AsientoVista extends JugadorVista {
             + "-fx-border-radius: 10;"
             + "-fx-background-radius: 10;";
 
+    private static final String ESTILO_CAMPO_RANGO = "-fx-font-size: 11px;";
+
     private final int indice;
     private final boolean esHero;
 
@@ -38,6 +44,13 @@ public class AsientoVista extends JugadorVista {
     private final Label manoLabel;
     private final TextField equity;
     private final TextField cartasManual;
+
+    private final TextField rangoTexto;
+    private final TextField porcentaje;
+    private final Label infoRango;
+
+    // La interfaz se entera de cualquier cambio en el rango o en el check "Jugando"
+    private Runnable alCambiarRango = () -> { };
 
     public AsientoVista(String id, int indice, boolean esHero) {
         super(id);
@@ -91,7 +104,36 @@ public class AsientoVista extends JugadorVista {
         cartasManual.setMaxWidth(140);
         cartasManual.setDisable(true);
 
-        getChildren().addAll(manoLabel, filaEquity, cartasManual);
+        // Rango propio: texto o porcentaje (excluyentes)
+        rangoTexto = new TextField();
+        rangoTexto.setPromptText("Rango: AA,KK,AKs");
+        rangoTexto.setPrefWidth(100);
+        rangoTexto.setStyle(ESTILO_CAMPO_RANGO);
+
+        porcentaje = new TextField();
+        porcentaje.setPromptText("Top %");
+        porcentaje.setPrefWidth(46);
+        porcentaje.setStyle(ESTILO_CAMPO_RANGO);
+
+        HBox filaRango = new HBox(4, rangoTexto, porcentaje);
+        filaRango.setAlignment(Pos.CENTER);
+
+        infoRango = new Label("");
+        infoRango.setStyle("-fx-text-fill: #D9D9D9; -fx-font-size: 10px;");
+        infoRango.setMinHeight(13);
+
+        getChildren().addAll(manoLabel, filaEquity, cartasManual, filaRango, infoRango);
+
+        // Exclusión mutua: si hay texto en uno, el otro queda deshabilitado
+        rangoTexto.textProperty().addListener((obs, antes, ahora) -> {
+            porcentaje.setDisable(!ahora.isBlank());
+            alCambiarRango.run();
+        });
+
+        porcentaje.textProperty().addListener((obs, antes, ahora) -> {
+            rangoTexto.setDisable(!ahora.isBlank());
+            alCambiarRango.run();
+        });
 
         // Al desactivar un asiento se atenúa y se limpia
         activo.selectedProperty().addListener((obs, antes, ahora) -> {
@@ -100,6 +142,7 @@ public class AsientoVista extends JugadorVista {
                 reiniciar();
                 limpiarResultado();
             }
+            alCambiarRango.run();
         });
     }
 
@@ -162,5 +205,55 @@ public class AsientoVista extends JugadorVista {
         equity.setTooltip(null);
         manoLabel.setText("");
         marcarGanador(false);
+    }
+
+
+    // =========================================================
+    // RANGO DEL ASIENTO
+    // =========================================================
+
+    public void setOnRangoCambiado(Runnable accion) {
+        this.alCambiarRango = accion == null ? () -> { } : accion;
+    }
+
+    public String getRangoTexto() {
+        return rangoTexto.getText();
+    }
+
+    public String getPorcentajeTexto() {
+        return porcentaje.getText();
+    }
+
+    // ¿Ha escrito algo el usuario en alguno de los dos cuadros de rango?
+    public boolean tieneRango() {
+        return !rangoTexto.getText().isBlank() || !porcentaje.getText().isBlank();
+    }
+
+    // Vacía los dos cuadros de rango (esto también los vuelve a habilitar)
+    public void limpiarRango() {
+        rangoTexto.clear();
+        porcentaje.clear();
+    }
+
+    // Muestra el estado del rango:
+    //   colorFondo: fondo del cuadro en uso (null = sin color)
+    //   info:       texto corto bajo los cuadros
+    //   detalle:    texto largo para el tooltip (null = sin tooltip)
+    public void mostrarRango(String colorFondo, String info, String detalle) {
+        rangoTexto.setStyle(ESTILO_CAMPO_RANGO);
+        porcentaje.setStyle(ESTILO_CAMPO_RANGO);
+
+        if (colorFondo != null) {
+            TextField enUso = !rangoTexto.getText().isBlank() ? rangoTexto : porcentaje;
+            enUso.setStyle(ESTILO_CAMPO_RANGO
+                    + "-fx-control-inner-background: " + colorFondo + ";"
+                    + "-fx-text-fill: #111111;");
+        }
+
+        infoRango.setText(info == null ? "" : info);
+
+        Tooltip tip = detalle == null || detalle.isEmpty() ? null : new Tooltip(detalle);
+        rangoTexto.setTooltip(tip);
+        porcentaje.setTooltip(tip);
     }
 }

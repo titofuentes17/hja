@@ -21,7 +21,6 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -29,9 +28,11 @@ import javafx.util.Duration;
 
 // Calculadora de equity para 6 jugadores.
 //
-//  - El hero (abajo) puede definir un RANGO de dos formas excluyentes:
+//  - CADA jugador puede tener un RANGO, definido de dos formas excluyentes:
 //      * en texto (AA,KK,AKs,77+,A5s-A2s...)
 //      * por porcentaje de mejores manos según un ranking
+//    El fondo del cuadro de rango se pone verde si la mano repartida a ese
+//    jugador está dentro de su rango, y rojo si está fuera.
 //  - Las cartas de los jugadores y el board pueden ser aleatorios o manuales.
 //  - Todos los jugadores muestran su equity en un cuadro de solo lectura.
 public class PokerEquityInterfaz extends Application {
@@ -51,16 +52,10 @@ public class PokerEquityInterfaz extends Application {
     private MesaEquityVista mesa;
     private CrupierVista crupier;
 
-    // Controles del hero
-    private TextField rangoTexto;
-    private TextField porcentaje;
+    // Controles de rango (generales; cada jugador tiene los suyos en su asiento)
     private ComboBox<String> rankingCombo;
-    private Label resumenRango;
+    private CheckBox repartirEnRango;
     private CheckBox equityRango;
-    private CheckBox heroEnRango;
-
-    // Mano con la que juega el hero en el último reparto (null si aún no hay)
-    private List<Carta> manoHero;
 
     // Controles de cartas
     private ComboBox<String> modoCartas;
@@ -70,6 +65,10 @@ public class PokerEquityInterfaz extends Application {
 
     private Button botonRepartir;
     private Label estado;
+
+    // Manos repartidas en el último reparto, por asiento (null si aún no hay reparto
+    // o si el asiento no juega). Sirve para comprobar si cada mano está en su rango.
+    private List<List<Carta>> manosRepartidas;
 
 
     // =========================================================
@@ -101,6 +100,11 @@ public class PokerEquityInterfaz extends Application {
         raiz.setRight(construirPanelControl());
         BorderPane.setMargin(raiz.getRight(), new Insets(0, 0, 0, 10));
 
+        // Cada asiento avisa a la interfaz cuando cambia su rango
+        for (AsientoVista asiento : mesa.getAsientos()) {
+            asiento.setOnRangoCambiado(this::actualizarRangos);
+        }
+
         ScrollPane desplazable = new ScrollPane(raiz);
         desplazable.setFitToWidth(true);
         desplazable.setFitToHeight(true);
@@ -108,9 +112,9 @@ public class PokerEquityInterfaz extends Application {
 
         fondoGeneral.getChildren().add(desplazable);
 
-        actualizarResumenRango();
+        actualizarRangos();
 
-        Scene escena = new Scene(fondoGeneral, 1330, 800);
+        Scene escena = new Scene(fondoGeneral, 1340, 880);
         escenario.setTitle("Calculadora de Equity - Poker");
         escenario.setScene(escena);
         escenario.show();
@@ -118,63 +122,53 @@ public class PokerEquityInterfaz extends Application {
 
 
     // =========================================================
-    // PANEL DE CONTROL (RANGO DEL HERO + CARTAS)
+    // PANEL DE CONTROL (RANGOS + CARTAS)
     // =========================================================
 
     private VBox construirPanelControl() {
-        // ---------- Rango del hero ----------
-        Label tituloRango = tituloSeccion("RANGO DEL HERO");
+        // ---------- Rangos ----------
+        Label tituloRango = tituloSeccion("RANGOS");
 
-        rangoTexto = new TextField();
-        rangoTexto.setPromptText("Texto: AA,KK,AKs,77+,A5s-A2s");
+        Label ayudaRango = etiqueta("Cada jugador tiene su cuadro de rango bajo su equity: escribe un "
+                + "rango (AA,KK,AKs,77+,A5s-A2s) o un porcentaje de mejores manos. "
+                + "Si usas uno, el otro se desactiva.");
+        ayudaRango.setWrapText(true);
+        ayudaRango.setMaxWidth(290);
+        ayudaRango.setStyle("-fx-text-fill: #8FA89C; -fx-font-size: 11px;");
 
-        Label o = etiqueta("— o —");
-        o.setMaxWidth(Double.MAX_VALUE);
-        o.setAlignment(Pos.CENTER);
-
-        porcentaje = new TextField();
-        porcentaje.setPromptText("Top % (ej. 15)");
-        porcentaje.setPrefWidth(110);
+        Label etiquetaRanking = etiqueta("Ranking para los porcentajes:");
 
         rankingCombo = new ComboBox<>();
         rankingCombo.getItems().addAll(RankingManos.NOMBRES);
         rankingCombo.setValue(RankingManos.NOMBRES.get(0));
-        rankingCombo.setPrefWidth(170);
+        rankingCombo.setMaxWidth(Double.MAX_VALUE);
+        rankingCombo.setOnAction(e -> actualizarRangos());
 
-        HBox filaPorcentaje = new HBox(8, porcentaje, rankingCombo);
-        filaPorcentaje.setAlignment(Pos.CENTER_LEFT);
+        Label leyenda = new Label("Verde: la mano está dentro del rango\n"
+                + "Rojo: la mano está fuera del rango\n"
+                + "Naranja: el rango no es válido");
+        leyenda.setStyle("-fx-text-fill: #E2E2E2; -fx-font-size: 11px;");
 
-        resumenRango = new Label();
-        resumenRango.setWrapText(true);
-        resumenRango.setMaxWidth(290);
+        repartirEnRango = new CheckBox("Repartir las manos dentro de los rangos");
+        repartirEnRango.setStyle("-fx-text-fill: #E2E2E2; -fx-font-size: 12px;");
 
-        equityRango = new CheckBox("Equity del rango completo del hero");
+        equityRango = new CheckBox("Equity del rango completo");
         equityRango.setStyle("-fx-text-fill: #E2E2E2; -fx-font-size: 12px;");
 
-        heroEnRango = new CheckBox("Repartir al hero una mano de su rango");
-        heroEnRango.setStyle("-fx-text-fill: #E2E2E2; -fx-font-size: 12px;");
-
-        Label notaRango = etiqueta("Con esta opción la equity del hero se calcula sobre todas las "
-                + "manos de su rango, no solo sobre la mano repartida.");
+        Label notaRango = etiqueta("Sin marcar «Repartir», cada jugador recibe una mano cualquiera y el "
+                + "cuadro indica si está dentro o fuera. Con «Equity del rango completo», la equity de "
+                + "un jugador con rango se calcula sobre todas sus manos posibles, no solo la repartida.");
         notaRango.setWrapText(true);
         notaRango.setMaxWidth(290);
         notaRango.setStyle("-fx-text-fill: #8FA89C; -fx-font-size: 10px;");
 
-        // Los dos cuadros de rango son mutuamente excluyentes:
-        // si uno tiene texto, el otro queda deshabilitado
-        rangoTexto.textProperty().addListener((obs, antes, ahora) -> {
-            boolean enUso = !ahora.isBlank();
-            porcentaje.setDisable(enUso);
-            rankingCombo.setDisable(enUso);
-            actualizarResumenRango();
+        Button limpiarRangos = new Button("Limpiar todos los rangos");
+        limpiarRangos.setMaxWidth(Double.MAX_VALUE);
+        limpiarRangos.setOnAction(e -> {
+            for (AsientoVista asiento : mesa.getAsientos()) {
+                asiento.limpiarRango();
+            }
         });
-
-        porcentaje.textProperty().addListener((obs, antes, ahora) -> {
-            rangoTexto.setDisable(!ahora.isBlank());
-            actualizarResumenRango();
-        });
-
-        rankingCombo.setOnAction(e -> actualizarResumenRango());
 
         // ---------- Cartas ----------
         Label tituloCartas = tituloSeccion("CARTAS");
@@ -230,7 +224,8 @@ public class PokerEquityInterfaz extends Application {
         estado.setStyle("-fx-text-fill: " + COLOR_NEUTRO + "; -fx-font-size: 12px;");
 
         VBox panel = new VBox(7,
-                tituloRango, rangoTexto, o, filaPorcentaje, resumenRango, heroEnRango, equityRango, notaRango,
+                tituloRango, ayudaRango, etiquetaRanking, rankingCombo, leyenda,
+                repartirEnRango, equityRango, notaRango, limpiarRangos,
                 new Separator(),
                 tituloCartas, modoCartas, ayudaCartas, modoBoard, calleBoard, boardManual,
                 new Separator(),
@@ -266,18 +261,18 @@ public class PokerEquityInterfaz extends Application {
 
 
     // =========================================================
-    // RANGO DEL HERO
+    // RANGOS DE LOS JUGADORES
     // =========================================================
 
-    // Devuelve el rango definido por el usuario, o null si no hay ninguno.
+    // Devuelve el rango escrito en un asiento, o null si no tiene ninguno.
     // Lanza IllegalArgumentException si lo escrito no es válido.
-    private Rango obtenerRangoHero() {
-        String texto = rangoTexto.getText();
+    private Rango obtenerRango(AsientoVista asiento) {
+        String texto = asiento.getRangoTexto();
         if (texto != null && !texto.isBlank()) {
             return Rango.desdeTexto(texto);
         }
 
-        String pct = porcentaje.getText();
+        String pct = asiento.getPorcentajeTexto();
         if (pct != null && !pct.isBlank()) {
             double valor;
             try {
@@ -291,66 +286,52 @@ public class PokerEquityInterfaz extends Application {
         return null;
     }
 
-    // Actualiza el mensaje bajo los cuadros de rango y el color de fondo del cuadro en uso:
-    //   verde    -> la mano del hero está dentro del rango
-    //   rojo     -> la mano del hero está fuera del rango
-    //   naranja  -> el texto del rango no es válido
-    //   sin color-> todavía no hay mano repartida (o no hay rango)
-    private void actualizarResumenRango() {
-        Rango rango = null;
-        String error = null;
-
-        try {
-            rango = obtenerRangoHero();
-        } catch (IllegalArgumentException e) {
-            error = e.getMessage();
-        }
-
-        if (error != null) {
-            resumenRango.setText(error);
-            resumenRango.setStyle("-fx-text-fill: " + COLOR_ERROR + "; -fx-font-size: 12px;");
-            pintarCampoRango(FONDO_INVALIDO);
+    // Recalcula el estado de los rangos de TODOS los asientos:
+    //   verde     -> la mano del jugador está dentro de su rango
+    //   rojo      -> la mano del jugador está fuera de su rango
+    //   naranja   -> el rango escrito no es válido
+    //   sin color -> todavía no hay mano repartida
+    private void actualizarRangos() {
+        if (mesa == null) {
             return;
         }
 
-        if (rango == null) {
-            resumenRango.setText("Sin rango: el hero puede recibir cualquier mano.");
-            resumenRango.setStyle("-fx-text-fill: " + COLOR_NEUTRO + "; -fx-font-size: 12px;");
-            pintarCampoRango(null);
-            return;
+        for (AsientoVista asiento : mesa.getAsientos()) {
+            if (!asiento.tieneRango()) {
+                asiento.mostrarRango(null, "", null);
+                continue;
+            }
+
+            Rango rango;
+            try {
+                rango = obtenerRango(asiento);
+            } catch (IllegalArgumentException e) {
+                asiento.mostrarRango(FONDO_INVALIDO, "Rango no válido", e.getMessage());
+                continue;
+            }
+
+            String resumen = String.format("%.1f %%", rango.porcentaje());
+            String detalle = rango.size() + " combinaciones (" + resumen + " de las manos)";
+
+            List<Carta> mano = null;
+            if (manosRepartidas != null && asiento.isActivo()) {
+                mano = manosRepartidas.get(asiento.getIndice());
+            }
+
+            if (mano == null) {
+                asiento.mostrarRango(null, detalle, detalle);
+                continue;
+            }
+
+            boolean dentro = rango.contiene(mano.get(0), mano.get(1));
+            String clase = Rango.clase(mano.get(0), mano.get(1));
+
+            asiento.mostrarRango(
+                    dentro ? FONDO_DENTRO : FONDO_FUERA,
+                    resumen + " · " + clase + ": " + (dentro ? "dentro" : "fuera"),
+                    detalle + "\nMano: " + Utils.cartasAString(mano) + " (" + clase + ") → "
+                            + (dentro ? "DENTRO del rango" : "FUERA del rango"));
         }
-
-        String texto = "Rango válido: " + rango.size() + " combinaciones ("
-                + String.format("%.1f", rango.porcentaje()) + " % de las manos).";
-
-        if (manoHero == null) {
-            resumenRango.setText(texto);
-            resumenRango.setStyle("-fx-text-fill: " + COLOR_OK + "; -fx-font-size: 12px;");
-            pintarCampoRango(null);
-            return;
-        }
-
-        boolean dentro = rango.contiene(manoHero.get(0), manoHero.get(1));
-        texto += "\nMano del hero: " + Utils.cartasAString(manoHero)
-                + " (" + Rango.clase(manoHero.get(0), manoHero.get(1)) + ") → "
-                + (dentro ? "DENTRO del rango" : "FUERA del rango");
-
-        resumenRango.setText(texto);
-        resumenRango.setStyle("-fx-text-fill: " + (dentro ? COLOR_OK : COLOR_ERROR) + "; -fx-font-size: 12px;");
-        pintarCampoRango(dentro ? FONDO_DENTRO : FONDO_FUERA);
-    }
-
-    // Pinta el fondo del cuadro de rango que se está usando (el otro queda sin color)
-    private void pintarCampoRango(String colorFondo) {
-        rangoTexto.setStyle("");
-        porcentaje.setStyle("");
-
-        if (colorFondo == null) {
-            return;
-        }
-
-        TextField enUso = !rangoTexto.getText().isBlank() ? rangoTexto : porcentaje;
-        enUso.setStyle("-fx-control-inner-background: " + colorFondo + "; -fx-text-fill: #111111;");
     }
 
 
@@ -362,7 +343,8 @@ public class PokerEquityInterfaz extends Application {
         final List<AsientoVista> activos = new ArrayList<>();
         final List<List<Carta>> manos = new ArrayList<>();   // una entrada por asiento (null si no juega)
         List<Carta> board = new ArrayList<>();
-        Rango rangoHeroParaEquity;                          // null si se calcula con la mano repartida
+        // Rango con el que se calcula la equity de cada asiento (null = su mano concreta)
+        final Rango[] rangosEquity = new Rango[MesaEquityVista.NUM_ASIENTOS];
     }
 
     private Reparto prepararReparto() {
@@ -433,42 +415,49 @@ public class PokerEquityInterfaz extends Application {
             }
         }
 
-        // ---------- Hero: mano aleatoria según su rango ----------
-        Rango rangoHero;
-        try {
-            rangoHero = obtenerRangoHero();
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Rango del hero: " + e.getMessage());
+        // ---------- Rangos de cada jugador ----------
+        Rango[] rangos = new Rango[MesaEquityVista.NUM_ASIENTOS];
+        for (AsientoVista asiento : reparto.activos) {
+            try {
+                rangos[asiento.getIndice()] = obtenerRango(asiento);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(asiento.getIdJugador() + ": rango no válido. " + e.getMessage());
+            }
+
+            if (equityRango.isSelected()) {
+                reparto.rangosEquity[asiento.getIndice()] = rangos[asiento.getIndice()];
+            }
         }
 
-        if (equityRango.isSelected() && rangoHero != null) {
-            reparto.rangoHeroParaEquity = rangoHero;
-        }
-
-        if (reparto.manos.get(0) == null) {
-            // Por defecto el hero recibe una mano cualquiera y el cuadro de rango indica
-            // si cae dentro o fuera. Con la casilla marcada, se reparte dentro del rango.
-            Rango fuente = (heroEnRango.isSelected() && rangoHero != null) ? rangoHero : Rango.todas();
-
-            List<int[]> libres = new ArrayList<>();
-            for (int[] combo : fuente.getCombos()) {
-                if (!usadas.contains(combo[0]) && !usadas.contains(combo[1])) {
-                    libres.add(combo);
+        // ---------- Jugadores con rango: mano aleatoria dentro de su rango ----------
+        // (primero ellos, que son los más restringidos)
+        if (repartirEnRango.isSelected()) {
+            for (AsientoVista asiento : reparto.activos) {
+                Rango rango = rangos[asiento.getIndice()];
+                if (rango == null || reparto.manos.get(asiento.getIndice()) != null) {
+                    continue;
                 }
-            }
-            if (libres.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "El rango del hero no es compatible con las cartas ya elegidas (board o jugadores).");
-            }
 
-            int[] elegido = libres.get(rnd.nextInt(libres.size()));
-            usadas.add(elegido[0]);
-            usadas.add(elegido[1]);
+                List<int[]> libres = new ArrayList<>();
+                for (int[] combo : rango.getCombos()) {
+                    if (!usadas.contains(combo[0]) && !usadas.contains(combo[1])) {
+                        libres.add(combo);
+                    }
+                }
+                if (libres.isEmpty()) {
+                    throw new IllegalArgumentException(asiento.getIdJugador()
+                            + ": su rango no es compatible con las cartas ya elegidas (board u otros jugadores).");
+                }
 
-            List<Carta> mano = new ArrayList<>();
-            mano.add(Cartas.carta(elegido[0]));
-            mano.add(Cartas.carta(elegido[1]));
-            reparto.manos.set(0, mano);
+                int[] elegido = libres.get(rnd.nextInt(libres.size()));
+                usadas.add(elegido[0]);
+                usadas.add(elegido[1]);
+
+                List<Carta> mano = new ArrayList<>();
+                mano.add(Cartas.carta(elegido[0]));
+                mano.add(Cartas.carta(elegido[1]));
+                reparto.manos.set(asiento.getIndice(), mano);
+            }
         }
 
         // ---------- Resto de jugadores: cartas aleatorias ----------
@@ -517,9 +506,9 @@ public class PokerEquityInterfaz extends Application {
         mostrarEstado("Repartiendo...", false);
         mesa.reiniciarTodo();
 
-        // Hasta que termine el reparto no se indica si el hero está dentro del rango
-        manoHero = null;
-        actualizarResumenRango();
+        // Hasta que termine el reparto no se indica si cada mano está dentro de su rango
+        manosRepartidas = null;
+        actualizarRangos();
 
         long retraso = 0;
         final long intervalo = 650;
@@ -555,16 +544,21 @@ public class PokerEquityInterfaz extends Application {
     private void calcularEquity(Reparto reparto) {
         mostrarEstado("Calculando equity...", false);
 
-        // Ya están todas las cartas repartidas: comprobamos si el hero está en su rango
-        manoHero = new ArrayList<>(reparto.manos.get(0));
-        actualizarResumenRango();
+        // Ya están todas las cartas repartidas: comprobamos quién está dentro de su rango
+        manosRepartidas = new ArrayList<>();
+        for (int i = 0; i < MesaEquityVista.NUM_ASIENTOS; i++) {
+            List<Carta> mano = reparto.manos.get(i);
+            manosRepartidas.add(mano == null ? null : new ArrayList<>(mano));
+        }
+        actualizarRangos();
 
         final List<Rango> rangos = new ArrayList<>();
         for (AsientoVista asiento : reparto.activos) {
             asiento.setEquity("...", null);
 
-            if (asiento.getIndice() == 0 && reparto.rangoHeroParaEquity != null) {
-                rangos.add(reparto.rangoHeroParaEquity);
+            Rango rangoEquity = reparto.rangosEquity[asiento.getIndice()];
+            if (rangoEquity != null) {
+                rangos.add(rangoEquity);
             } else {
                 List<Carta> mano = reparto.manos.get(asiento.getIndice());
                 rangos.add(Rango.deCartas(mano.get(0), mano.get(1)));
@@ -608,8 +602,9 @@ public class PokerEquityInterfaz extends Application {
             String detalle = String.format("Gana: %.2f %%   Empata: %.2f %%",
                     resultado.victorias[i] * 100, resultado.empates[i] * 100);
 
-            if (asiento.getIndice() == 0 && reparto.rangoHeroParaEquity != null) {
-                detalle = "Equity del rango completo (" + reparto.rangoHeroParaEquity.size() + " combos).  " + detalle;
+            Rango rangoEquity = reparto.rangosEquity[asiento.getIndice()];
+            if (rangoEquity != null) {
+                detalle = "Equity del rango completo (" + rangoEquity.size() + " combos).  " + detalle;
             }
             asiento.setEquity(texto, detalle);
         }

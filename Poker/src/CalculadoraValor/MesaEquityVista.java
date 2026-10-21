@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javafx.geometry.Pos;
-import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -24,22 +23,22 @@ public class MesaEquityVista extends Pane {
     public static final int NUM_ASIENTOS = 6;
 
     private static final double ANCHO = 900;
-    private static final double ALTO = 540;
+    private static final double ALTO = 670;
 
     private static final double CENTRO_X = ANCHO / 2;
-    private static final double CENTRO_Y = 270;
+    private static final double CENTRO_Y = 330;
 
     private static final double ANCHO_ASIENTO = 165;
-    private static final double ALTO_ASIENTO = 215;
+    private static final double ALTO_ASIENTO = 265;
 
     // Centro de cada asiento: hero, J1..J5 en sentido horario
     private static final double[][] POSICIONES = {
-        {450, 430},   // hero (abajo)
-        {125, 372},   // J1 (abajo izquierda)
-        {125, 150},   // J2 (arriba izquierda)
-        {450, 112},   // J3 (arriba)
-        {775, 150},   // J4 (arriba derecha)
-        {775, 372}    // J5 (abajo derecha)
+        {450, 520},   // hero (abajo)
+        {125, 470},   // J1 (abajo izquierda)
+        {125, 190},   // J2 (arriba izquierda)
+        {450, 140},   // J3 (arriba)
+        {775, 190},   // J4 (arriba derecha)
+        {775, 470}    // J5 (abajo derecha)
     };
 
     private final List<AsientoVista> asientos = new ArrayList<>();
