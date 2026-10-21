@@ -2,6 +2,7 @@ package CalculadoraValor;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -23,12 +24,16 @@ public final class Rango {
     // Cada combo son dos ids de carta {a, b} con a < b
     private final List<int[]> combos;
 
+    // Los mismos combos como claves (a * 64 + b) para comprobar pertenencia al instante
+    private final Set<Integer> claves;
+
     private Rango(Set<Integer> claves) {
         List<int[]> lista = new ArrayList<>();
         for (int clave : claves) {
             lista.add(new int[] {clave / 64, clave % 64});
         }
         this.combos = Collections.unmodifiableList(lista);
+        this.claves = new HashSet<>(claves);
     }
 
     public List<int[]> getCombos() {
@@ -46,6 +51,26 @@ public final class Rango {
     // Porcentaje de las 1326 manos posibles que contiene el rango
     public double porcentaje() {
         return 100.0 * combos.size() / TOTAL_COMBOS;
+    }
+
+    // ¿Está esta mano concreta (en cualquier orden) dentro del rango?
+    public boolean contiene(Carta c1, Carta c2) {
+        int x = Cartas.id(c1);
+        int y = Cartas.id(c2);
+        return claves.contains(Math.min(x, y) * 64 + Math.max(x, y));
+    }
+
+    // Clase de una mano concreta: AhKh -> "AKs", 7c7d -> "77", Qs9d -> "Q9o"
+    public static String clase(Carta c1, Carta c2) {
+        int a = Cartas.RANGOS.indexOf(c1.getValor());
+        int b = Cartas.RANGOS.indexOf(c2.getValor());
+        char alta = Cartas.RANGOS.charAt(Math.max(a, b));
+        char baja = Cartas.RANGOS.charAt(Math.min(a, b));
+
+        if (a == b) {
+            return "" + alta + baja;
+        }
+        return "" + alta + baja + (c1.getPalo() == c2.getPalo() ? "s" : "o");
     }
 
     public List<Carta> primerCombo() {
@@ -189,6 +214,13 @@ public final class Rango {
         // Con '+', p.ej. 77+ o ATs+
         if (t.endsWith("+")) {
             Clase k = parseClase(t.substring(0, t.length() - 1), token);
+
+            // Si no es pareja, hay que decir si es suited (s) u offsuited (o)
+            if (k.alta != k.baja && k.tipo == ' ') {
+                throw new IllegalArgumentException(
+                        "Indica suited (s) u offsuit (o) en \"" + token + "\", por ejemplo " + t.substring(0, 2) + "s+");
+            }
+
             if (k.alta == k.baja) {
                 for (int r = k.alta; r <= 12; r++) {
                     anadirClase(out, r, r, ' ');
