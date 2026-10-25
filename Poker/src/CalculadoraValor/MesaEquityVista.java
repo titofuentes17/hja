@@ -115,6 +115,7 @@ public class MesaEquityVista extends Pane {
     public void reiniciarTodo() {
         reiniciarBoard();
         for (AsientoVista asiento : asientos) {
+            asiento.setRetirado(false);
             asiento.reiniciar();
             asiento.limpiarResultado();
         }

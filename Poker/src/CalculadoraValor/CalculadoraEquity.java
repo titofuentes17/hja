@@ -30,46 +30,63 @@ public final class CalculadoraEquity {
 
     // rangos: un Rango por jugador | board: 0, 3, 4 o 5 cartas ya conocidas
     public static Resultado calcular(List<Rango> rangos, List<Carta> board, int iteraciones, Random rnd) {
-        int n = rangos.size();
-        if (n < 2) {
+        if (rangos.size() < 2) {
             throw new IllegalArgumentException("Hacen falta al menos dos jugadores");
         }
-        if (n > 10 || iteraciones <= 0 || rnd == null) {
+        return calcular(rangos, board, List.of(), iteraciones, rnd);
+    }
+
+    // Los retirados no compiten por el bote, pero sus cartas bloquean rangos y board.
+    // Esta sobrecarga también admite el único superviviente de una mano con Fold.
+    public static Resultado calcular(List<Rango> rangos, List<Carta> board,
+            List<Carta> cartasRetiradas, int iteraciones, Random rnd) {
+        int n = rangos.size();
+        if (n < 1 || n > 10 || iteraciones <= 0 || rnd == null) {
             throw new IllegalArgumentException("Jugadores, iteraciones o generador aleatorio no válidos");
         }
         int tamanoBoard = board.size();
         if (tamanoBoard != 0 && tamanoBoard != 3 && tamanoBoard != 4 && tamanoBoard != 5) {
             throw new IllegalArgumentException("El board debe tener 0, 3, 4 o 5 cartas");
         }
-        ManoEquity.validar(board, new java.util.HashSet<>());
+        java.util.Set<Integer> conocidasIds = new java.util.HashSet<>();
+        ManoEquity.validar(board, conocidasIds);
+        ManoEquity.validar(cartasRetiradas, conocidasIds);
+        if (conocidasIds.size() + 2 * n + (5 - tamanoBoard) > 52) {
+            throw new IllegalArgumentException("No quedan cartas suficientes para completar el reparto");
+        }
 
-        // Cartas del board
-        long mascaraBoard = 0;
+        // Cartas bloqueadas: comunitarias visibles y manos retiradas conocidas.
+        long mascaraBloqueadas = 0;
         int[] boardIds = new int[5];
         for (int i = 0; i < board.size(); i++) {
             boardIds[i] = Cartas.id(board.get(i));
-            mascaraBoard |= 1L << boardIds[i];
+            mascaraBloqueadas |= 1L << boardIds[i];
         }
+        for (Carta carta : cartasRetiradas) mascaraBloqueadas |= 1L << Cartas.id(carta);
         int conocidas = board.size();
 
-        // Manos posibles de cada jugador sin las cartas del board
+        // Manos posibles de cada jugador sin ninguna de las cartas bloqueadas.
         List<List<int[]>> posibles = new ArrayList<>();
         boolean todosFijos = true;
         for (int i = 0; i < n; i++) {
             List<int[]> validas = new ArrayList<>();
             for (int[] combo : rangos.get(i).getCombos()) {
-                if (((mascaraBoard >> combo[0]) & 1) == 0 && ((mascaraBoard >> combo[1]) & 1) == 0) {
+                if (((mascaraBloqueadas >> combo[0]) & 1) == 0 && ((mascaraBloqueadas >> combo[1]) & 1) == 0) {
                     validas.add(combo);
                 }
             }
             if (validas.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "Las cartas del jugador " + (i + 1) + " no son compatibles con el board");
+                        "Las cartas del jugador " + (i + 1) + " no son compatibles con el board o las cartas retiradas");
             }
             if (validas.size() > 1) {
                 todosFijos = false;
             }
             posibles.add(validas);
+        }
+
+        if (n == 1) {
+            return new Resultado(new double[] {1}, new double[] {1}, new double[] {0}, 1);
         }
 
         // Orden de asignación: primero los que tienen menos opciones
@@ -100,7 +117,7 @@ public final class CalculadoraEquity {
             intentos++;
 
             // 1. Elegimos la mano de cada jugador sin repetir cartas
-            long usadas = mascaraBoard;
+            long usadas = mascaraBloqueadas;
             boolean ok = true;
             for (int idx : orden) {
                 List<int[]> lista = posibles.get(idx);

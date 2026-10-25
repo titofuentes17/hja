@@ -11,6 +11,7 @@ public final class ManoEquity {
     private final List<List<Carta>> manos;
     private final List<Carta> boardCompleto;
     private Calle calle = Calle.PREFLOP;
+    private final boolean[] retirados = new boolean[JUGADORES];
 
     public ManoEquity(List<List<Carta>> manos, List<Carta> boardCompleto) {
         if (manos.size() != JUGADORES || boardCompleto.size() != 5) {
@@ -55,17 +56,45 @@ public final class ManoEquity {
     }
 
     public boolean puedeAvanzar() {
-        return calle != Calle.RIVER;
+        return calle != Calle.RIVER && getJugadoresEnMano().size() > 1;
+    }
+
+    public boolean estaRetirado(int indice) {
+        return retirados[indice];
+    }
+
+    /** Índices de asiento estables: retirar a alguien no desplaza al resto. */
+    public List<Integer> getJugadoresEnMano() {
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < JUGADORES; i++) if (!retirados[i]) indices.add(i);
+        return List.copyOf(indices);
+    }
+
+    /** Sus cartas siguen siendo conocidas y nunca vuelven al mazo. */
+    public List<Carta> getCartasRetiradas() {
+        List<Carta> cartas = new ArrayList<>();
+        for (int i = 0; i < JUGADORES; i++) if (retirados[i]) cartas.addAll(manos.get(i));
+        return List.copyOf(cartas);
+    }
+
+    public void retirar(int indice) {
+        if (indice < 0 || indice >= JUGADORES) throw new IllegalArgumentException("Asiento no válido.");
+        if (retirados[indice]) throw new IllegalStateException("El jugador ya ha hecho Fold.");
+        if (!puedeAvanzar()) throw new IllegalStateException("La mano ya ha finalizado.");
+        retirados[indice] = true;
     }
 
     /** Devuelve exclusivamente las cartas que se acaban de revelar. */
     public List<Carta> avanzar() {
+        if (!puedeAvanzar()) throw new IllegalStateException("La mano ya ha finalizado.");
         int anteriores = calle.getComunitarias();
         calle = calle.siguiente();
         return List.copyOf(boardCompleto.subList(anteriores, calle.getComunitarias()));
     }
 
+    /** Solo jugadores en mano, en el orden de getJugadoresEnMano(). */
     public List<Rango> getRangosConcretos() {
-        return manos.stream().map(m -> Rango.deCartas(m.get(0), m.get(1))).toList();
+        return getJugadoresEnMano().stream().map(manos::get)
+                .map(m -> Rango.deCartas(m.get(0), m.get(1))).toList();
     }
 }

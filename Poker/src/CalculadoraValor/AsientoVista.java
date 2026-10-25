@@ -3,6 +3,7 @@ package CalculadoraValor;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -41,6 +42,8 @@ public class AsientoVista extends JugadorVista {
 
     private final Label nombreLabel;
     private final CheckBox activo;
+    private final Button fold;
+    private boolean retirado;
     private final Label manoLabel;
     private final TextField equity;
     private final TextField cartasManual;
@@ -74,7 +77,13 @@ public class AsientoVista extends JugadorVista {
         activo.setSelected(true);
         activo.setDisable(esHero);
         activo.setStyle("-fx-text-fill: #DDDDDD; -fx-font-size: 11px;");
-        getChildren().add(0, activo);
+        fold = new Button("Fold");
+        fold.setId("fold-" + indice);
+        fold.setDisable(true);
+        fold.setTooltip(new Tooltip("Retirarse de esta mano. Las cartas siguen fuera del mazo."));
+        HBox participacion = new HBox(8, activo, fold);
+        participacion.setAlignment(Pos.CENTER);
+        getChildren().add(0, participacion);
 
         // Nombre de la mejor mano
         manoLabel = new Label("");
@@ -182,6 +191,33 @@ public class AsientoVista extends JugadorVista {
     public void setParticipacionFija(boolean fija) {
         if (fija) activo.setSelected(true);
         activo.setDisable(esHero || fija);
+        fold.setVisible(fija);
+        fold.setManaged(fija);
+    }
+
+    public void setOnFold(Runnable accion) {
+        fold.setOnAction(e -> accion.run());
+    }
+
+    public void setFoldDisponible(boolean disponible) {
+        fold.setDisable(!disponible || retirado);
+    }
+
+    public boolean isRetirado() {
+        return retirado;
+    }
+
+    public void setRetirado(boolean retirado) {
+        this.retirado = retirado;
+        setOpacity(retirado || !isActivo() ? 0.45 : 1.0);
+        fold.setText(retirado ? "Retirado" : "Fold");
+        if (retirado) {
+            fold.setDisable(true);
+            limpiarResultado();
+            setManoTexto("FOLD");
+            setEquity("0,00 %", "Retirado: no disputa el bote; sus cartas siguen fuera del mazo.");
+            getCartasVista().forEach(CartaVista::quitarDestacado);
+        }
     }
 
     public String getCartasTexto() {

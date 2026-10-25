@@ -112,6 +112,7 @@ public class PokerEquityInterfaz extends Application {
         // Cada asiento avisa a la interfaz cuando cambia su rango
         for (AsientoVista asiento : mesa.getAsientos()) {
             asiento.setOnRangoCambiado(this::actualizarRangos);
+            asiento.setOnFold(() -> retirarJugador(asiento.getIndice()));
         }
 
         ScrollPane desplazable = new ScrollPane(raiz);
@@ -252,6 +253,7 @@ public class PokerEquityInterfaz extends Application {
         Label ayudaCalles = etiqueta("Por calles: equity de las seis manos repartidas. "
                 + "El board manual se reserva y se revela poco a poco. Los cambios de cartas "
                 + "o rangos de reparto se aplican a la próxima mano. "
+                + "Fold retira al jugador y conserva sus cartas fuera del mazo. "
                 + "El análisis de rangos completos se conserva en «Escenario aislado».");
         ayudaCalles.setWrapText(true);
         ayudaCalles.setMaxWidth(290);
@@ -316,9 +318,13 @@ public class PokerEquityInterfaz extends Application {
         if (manoActual != null) {
             botonSiguiente.setText(manoActual.puedeAvanzar()
                     ? "Mostrar " + manoActual.getCalle().siguiente().name().toLowerCase(java.util.Locale.ROOT)
-                    : "River completado");
+                    : "Mano finalizada");
         }
-        for (AsientoVista asiento : mesa.getAsientos()) asiento.setParticipacionFija(porCalles);
+        for (AsientoVista asiento : mesa.getAsientos()) {
+            asiento.setParticipacionFija(porCalles);
+            asiento.setFoldDisponible(porCalles && !ocupado && manoActual != null
+                    && manoActual.puedeAvanzar() && !manoActual.estaRetirado(asiento.getIndice()));
+        }
     }
 
     // Todos los callbacks comprueban esta versión, incluso si la cancelación llega tarde.
@@ -392,10 +398,21 @@ public class PokerEquityInterfaz extends Application {
 
     private Reparto repartoActual() {
         Reparto reparto = new Reparto();
-        reparto.activos.addAll(mesa.getAsientos());
+        for (int indice : manoActual.getJugadoresEnMano()) reparto.activos.add(mesa.getAsiento(indice));
         reparto.manos.addAll(manoActual.getManos());
         reparto.board = manoActual.getBoardVisible();
+        reparto.cartasRetiradas = manoActual.getCartasRetiradas();
         return reparto;
+    }
+
+    private void retirarJugador(int indice) {
+        if (ocupado || !esManoPorCalles() || manoActual == null || !manoActual.puedeAvanzar()
+                || manoActual.estaRetirado(indice)) return;
+        manoActual.retirar(indice);
+        mesa.getAsiento(indice).setRetirado(true);
+        empezarOperacion();
+        // Recalcular también la calle actual, sin revelar ni volver a repartir cartas.
+        calcularEquity(repartoActual());
     }
 
     private void siguienteCalle() {
@@ -498,6 +515,7 @@ public class PokerEquityInterfaz extends Application {
         final List<AsientoVista> activos = new ArrayList<>();
         final List<List<Carta>> manos = new ArrayList<>();   // una entrada por asiento (null si no juega)
         List<Carta> board = new ArrayList<>();
+        List<Carta> cartasRetiradas = List.of();
         // Rango con el que se calcula la equity de cada asiento (null = su mano concreta)
         final Rango[] rangosEquity = new Rango[MesaEquityVista.NUM_ASIENTOS];
     }
@@ -717,6 +735,11 @@ public class PokerEquityInterfaz extends Application {
     private void calcularEquity(Reparto reparto) {
         final long version = versionOperacion;
         mostrarEstado("Calculando equity...", false);
+        mesa.getBoard().forEach(CartaVista::quitarDestacado);
+        for (AsientoVista asiento : reparto.activos) {
+            asiento.limpiarResultado();
+            asiento.getCartasVista().forEach(CartaVista::quitarDestacado);
+        }
 
         // Ya están todas las cartas repartidas: comprobamos quién está dentro de su rango
         manosRepartidas = new ArrayList<>();
@@ -745,7 +768,8 @@ public class PokerEquityInterfaz extends Application {
         Task<CalculadoraEquity.Resultado> tarea = new Task<>() {
             @Override
             protected CalculadoraEquity.Resultado call() {
-                return CalculadoraEquity.calcular(rangos, board, ITERACIONES, new Random());
+                return CalculadoraEquity.calcular(rangos, board, reparto.cartasRetiradas,
+                        ITERACIONES, new Random());
             }
         };
 
@@ -783,6 +807,8 @@ public class PokerEquityInterfaz extends Application {
             asiento.setEquity(texto, detalle);
         }
 
+        if (reparto.activos.size() == 1) reparto.activos.get(0).marcarGanador(true);
+
         // Nombre de la mejor mano de cada jugador (con las clases ya existentes)
         if (reparto.board.size() >= 3) {
             List<Jugador> jugadores = new ArrayList<>();
@@ -807,7 +833,8 @@ public class PokerEquityInterfaz extends Application {
             }
         }
 
-        mostrarEstado("Equity calculada: " + resultado.iteraciones + " repartos evaluados."
+        mostrarEstado((reparto.activos.size() == 1 ? "Ganador por Fold. " : "")
+                + "Equity calculada: " + resultado.iteraciones + " repartos evaluados."
                 + (manoActual != null && !manoActual.puedeAvanzar() ? " Mano finalizada." : ""), false);
     }
 
