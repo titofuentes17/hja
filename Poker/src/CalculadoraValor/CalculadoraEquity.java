@@ -34,6 +34,14 @@ public final class CalculadoraEquity {
         if (n < 2) {
             throw new IllegalArgumentException("Hacen falta al menos dos jugadores");
         }
+        if (n > 10 || iteraciones <= 0 || rnd == null) {
+            throw new IllegalArgumentException("Jugadores, iteraciones o generador aleatorio no válidos");
+        }
+        int tamanoBoard = board.size();
+        if (tamanoBoard != 0 && tamanoBoard != 3 && tamanoBoard != 4 && tamanoBoard != 5) {
+            throw new IllegalArgumentException("El board debe tener 0, 3, 4 o 5 cartas");
+        }
+        ManoEquity.validar(board, new java.util.HashSet<>());
 
         // Cartas del board
         long mascaraBoard = 0;
@@ -86,6 +94,9 @@ public final class CalculadoraEquity {
         long intentos = 0;
 
         while (validas < objetivo && intentos < maxIntentos) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new java.util.concurrent.CancellationException("Cálculo cancelado");
+            }
             intentos++;
 
             // 1. Elegimos la mano de cada jugador sin repetir cartas

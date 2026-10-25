@@ -1,4 +1,4 @@
-package CalculadoraValor;
+	package CalculadoraValor;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,7 +64,16 @@ public class PokerEquityInterfaz extends Application {
     private TextField boardManual;
 
     private Button botonRepartir;
+    private Button botonSiguiente;
+    private ComboBox<String> modoAnalisis;
+    private Label calleActual;
+    private VBox configuracion;
     private Label estado;
+    private ManoEquity manoActual;
+    private boolean ocupado;
+    private long versionOperacion;
+    private Task<?> tareaActual;
+    private final List<PauseTransition> pausas = new ArrayList<>();
 
     // Manos repartidas en el último reparto, por asiento (null si aún no hay reparto
     // o si el asiento no juega). Sirve para comprobar si cada mano está en su rango.
@@ -118,6 +127,7 @@ public class PokerEquityInterfaz extends Application {
         escenario.setTitle("Calculadora de Equity - Poker");
         escenario.setScene(escena);
         escenario.show();
+        actualizarControles();
     }
 
 
@@ -207,7 +217,7 @@ public class PokerEquityInterfaz extends Application {
 
         modoBoard.setOnAction(e -> {
             boolean manual = modoBoard.getValue().contains("manual");
-            calleBoard.setDisable(manual);
+            calleBoard.setDisable(manual || esManoPorCalles());
             boardManual.setDisable(!manual);
         });
 
@@ -216,20 +226,48 @@ public class PokerEquityInterfaz extends Application {
         botonRepartir.setMaxWidth(Double.MAX_VALUE);
         botonRepartir.setStyle("-fx-background-color: #C9A227;" + "-fx-text-fill: #111111;" + "-fx-font-weight: bold;"
                 + "-fx-font-size: 13px;" + "-fx-background-radius: 8;" + "-fx-padding: 8 22 8 22;" + "-fx-cursor: hand;");
-        botonRepartir.setOnAction(e -> repartir());
+        botonRepartir.setOnAction(e -> {
+            if (esManoPorCalles()) nuevaMano();
+            else repartir();
+        });
 
-        estado = new Label("Pulsa REPARTIR para empezar.");
+        modoAnalisis = new ComboBox<>();
+        modoAnalisis.getItems().addAll("Mano por calles (6 jugadores)", "Escenario aislado");
+        modoAnalisis.getSelectionModel().selectFirst();
+        modoAnalisis.setMaxWidth(Double.MAX_VALUE);
+        modoAnalisis.setOnAction(e -> {
+            invalidarOperacion();
+            manoActual = null;
+            manosRepartidas = null;
+            mesa.reiniciarTodo();
+            actualizarRangos();
+            calleActual.setText("Sin mano iniciada");
+            mostrarEstado("Configura las cartas y pulsa el botón de inicio.", false);
+            actualizarControles();
+        });
+        botonSiguiente = new Button("Mostrar flop");
+        botonSiguiente.setMaxWidth(Double.MAX_VALUE);
+        botonSiguiente.setOnAction(e -> siguienteCalle());
+        calleActual = etiqueta("Sin mano iniciada");
+        Label ayudaCalles = etiqueta("Por calles: equity de las seis manos repartidas. "
+                + "El board manual se reserva y se revela poco a poco. Los cambios de cartas "
+                + "o rangos de reparto se aplican a la próxima mano. "
+                + "El análisis de rangos completos se conserva en «Escenario aislado».");
+        ayudaCalles.setWrapText(true);
+        ayudaCalles.setMaxWidth(290);
+
+        estado = new Label("Pulsa Nueva mano para empezar en preflop.");
         estado.setWrapText(true);
         estado.setMaxWidth(290);
         estado.setStyle("-fx-text-fill: " + COLOR_NEUTRO + "; -fx-font-size: 12px;");
 
-        VBox panel = new VBox(7,
+        configuracion = new VBox(7,
                 tituloRango, ayudaRango, etiquetaRanking, rankingCombo, leyenda,
                 repartirEnRango, equityRango, notaRango, limpiarRangos,
                 new Separator(),
-                tituloCartas, modoCartas, ayudaCartas, modoBoard, calleBoard, boardManual,
-                new Separator(),
-                botonRepartir, estado);
+                tituloCartas, modoCartas, ayudaCartas, modoBoard, calleBoard, boardManual);
+        VBox panel = new VBox(7, modoAnalisis, ayudaCalles, configuracion,
+                new Separator(), calleActual, botonRepartir, botonSiguiente, estado);
 
         panel.setPadding(new Insets(12));
         panel.setPrefWidth(320);
@@ -257,6 +295,123 @@ public class PokerEquityInterfaz extends Application {
     private void mostrarEstado(String mensaje, boolean error) {
         estado.setText(mensaje);
         estado.setStyle("-fx-text-fill: " + (error ? COLOR_ERROR : COLOR_NEUTRO) + "; -fx-font-size: 12px;");
+    }
+
+    private boolean esManoPorCalles() {
+        return modoAnalisis != null && modoAnalisis.getSelectionModel().getSelectedIndex() == 0;
+    }
+
+    private void actualizarControles() {
+        boolean porCalles = esManoPorCalles();
+        configuracion.setDisable(ocupado);
+        mesa.setDisable(ocupado);
+        modoAnalisis.setDisable(ocupado);
+        botonRepartir.setDisable(ocupado);
+        botonRepartir.setText(porCalles ? "Nueva mano" : "Repartir escenario y calcular");
+        equityRango.setDisable(porCalles);
+        calleBoard.setDisable(porCalles || modoBoard.getValue().contains("manual"));
+        botonSiguiente.setVisible(porCalles);
+        botonSiguiente.setManaged(porCalles);
+        botonSiguiente.setDisable(ocupado || manoActual == null || !manoActual.puedeAvanzar());
+        if (manoActual != null) {
+            botonSiguiente.setText(manoActual.puedeAvanzar()
+                    ? "Mostrar " + manoActual.getCalle().siguiente().name().toLowerCase(java.util.Locale.ROOT)
+                    : "River completado");
+        }
+        for (AsientoVista asiento : mesa.getAsientos()) asiento.setParticipacionFija(porCalles);
+    }
+
+    // Todos los callbacks comprueban esta versión, incluso si la cancelación llega tarde.
+    private void invalidarOperacion() {
+        versionOperacion++;
+        if (tareaActual != null) tareaActual.cancel(true);
+        tareaActual = null;
+        for (PauseTransition pausa : pausas) pausa.stop();
+        pausas.clear();
+    }
+
+    private void empezarOperacion() {
+        invalidarOperacion();
+        ocupado = true;
+        actualizarControles();
+    }
+
+    private void terminarOperacion() {
+        tareaActual = null;
+        ocupado = false;
+        actualizarControles();
+    }
+
+    @Override
+    public void stop() {
+        invalidarOperacion();
+    }
+
+    private void nuevaMano() {
+        if (ocupado) return;
+        final List<List<Carta>> manuales = new ArrayList<>();
+        final List<Rango> rangos = new ArrayList<>();
+        final List<Carta> reservado;
+        try {
+            reservado = modoBoard.getValue().contains("manual")
+                    ? Cartas.parsear(boardManual.getText()) : List.of();
+            for (AsientoVista asiento : mesa.getAsientos()) {
+                String texto = asiento.getCartasTexto();
+                manuales.add(modoCartas.getValue().contains("manual") && texto != null && !texto.isBlank()
+                        ? Cartas.parsear(texto) : null);
+                rangos.add(obtenerRango(asiento));
+            }
+        } catch (IllegalArgumentException e) {
+            mostrarEstado(e.getMessage(), true);
+            return;
+        }
+        boolean restringir = repartirEnRango.isSelected();
+        empezarOperacion();
+        mostrarEstado("Preparando la nueva mano...", false);
+        final long version = versionOperacion;
+        Task<ManoEquity> preparacion = new Task<>() {
+            @Override
+            protected ManoEquity call() {
+                return RepartidorEquity.nuevaMano(manuales, rangos, reservado, restringir, new Random());
+            }
+        };
+        tareaActual = preparacion;
+        preparacion.setOnSucceeded(e -> {
+            if (version != versionOperacion) return;
+            manoActual = preparacion.getValue();
+            calleActual.setText("Calle actual: PREFLOP");
+            animarReparto(repartoActual(), true, 0);
+        });
+        preparacion.setOnFailed(e -> {
+            if (version != versionOperacion) return;
+            mostrarEstado("No se pudo repartir: " + preparacion.getException().getMessage(), true);
+            terminarOperacion();
+        });
+        iniciarHilo(preparacion);
+    }
+
+    private Reparto repartoActual() {
+        Reparto reparto = new Reparto();
+        reparto.activos.addAll(mesa.getAsientos());
+        reparto.manos.addAll(manoActual.getManos());
+        reparto.board = manoActual.getBoardVisible();
+        return reparto;
+    }
+
+    private void siguienteCalle() {
+        if (ocupado || !esManoPorCalles() || manoActual == null || !manoActual.puedeAvanzar()) return;
+        int anteriores = manoActual.getBoardVisible().size();
+        empezarOperacion();
+        manoActual.avanzar();
+        calleActual.setText("Calle actual: " + manoActual.getCalle());
+        // No se reinicia la mesa ni se vuelven a repartir las cartas propias.
+        animarReparto(repartoActual(), false, anteriores);
+    }
+
+    private void iniciarHilo(Task<?> tarea) {
+        Thread hilo = new Thread(tarea, "poker-equity");
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
 
@@ -494,6 +649,7 @@ public class PokerEquityInterfaz extends Application {
     // =========================================================
 
     private void repartir() {
+        if (ocupado) return;
         final Reparto reparto;
         try {
             reparto = prepararReparto();
@@ -502,19 +658,31 @@ public class PokerEquityInterfaz extends Application {
             return;
         }
 
-        botonRepartir.setDisable(true);
+        empezarOperacion();
+        manoActual = null;
+        calleActual.setText("Escenario: " + switch (reparto.board.size()) {
+            case 0 -> "PREFLOP";
+            case 3 -> "FLOP";
+            case 4 -> "TURN";
+            default -> "RIVER";
+        });
+        animarReparto(reparto, true, 0);
+    }
+
+    private void animarReparto(Reparto reparto, boolean nuevo, int primerasVisibles) {
         mostrarEstado("Repartiendo...", false);
-        mesa.reiniciarTodo();
+        if (nuevo) mesa.reiniciarTodo();
+        else for (AsientoVista asiento : reparto.activos) asiento.limpiarResultado();
 
         // Hasta que termine el reparto no se indica si cada mano está dentro de su rango
-        manosRepartidas = null;
+        if (nuevo) manosRepartidas = null;
         actualizarRangos();
 
         long retraso = 0;
-        final long intervalo = 650;
+        final long intervalo = 750;
 
         // Dos vueltas de cartas a los jugadores
-        for (int numeroCarta = 0; numeroCarta < 2; numeroCarta++) {
+        for (int numeroCarta = 0; nuevo && numeroCarta < 2; numeroCarta++) {
             final int indiceCarta = numeroCarta;
             for (AsientoVista asiento : reparto.activos) {
                 final AsientoVista destino = asiento;
@@ -525,7 +693,7 @@ public class PokerEquityInterfaz extends Application {
         }
 
         // Board
-        for (int i = 0; i < reparto.board.size(); i++) {
+        for (int i = primerasVisibles; i < reparto.board.size(); i++) {
             final int indice = i;
             final Carta carta = reparto.board.get(i);
             programar(retraso, () -> crupier.repartirCarta(mesa.getCartaBoard(indice), carta));
@@ -536,12 +704,18 @@ public class PokerEquityInterfaz extends Application {
     }
 
     private void programar(long milisegundos, Runnable accion) {
+        final long version = versionOperacion;
         PauseTransition pausa = new PauseTransition(Duration.millis(milisegundos));
-        pausa.setOnFinished(e -> accion.run());
+        pausas.add(pausa);
+        pausa.setOnFinished(e -> {
+            pausas.remove(pausa);
+            if (version == versionOperacion) accion.run();
+        });
         pausa.play();
     }
 
     private void calcularEquity(Reparto reparto) {
+        final long version = versionOperacion;
         mostrarEstado("Calculando equity...", false);
 
         // Ya están todas las cartas repartidas: comprobamos quién está dentro de su rango
@@ -576,22 +750,22 @@ public class PokerEquityInterfaz extends Application {
         };
 
         tarea.setOnSucceeded(e -> {
+            if (version != versionOperacion) return;
             mostrarResultado(reparto, tarea.getValue());
-            botonRepartir.setDisable(false);
+            terminarOperacion();
         });
 
         tarea.setOnFailed(e -> {
+            if (version != versionOperacion) return;
             Throwable causa = tarea.getException();
             for (AsientoVista asiento : reparto.activos) {
                 asiento.setEquity("", null);
             }
             mostrarEstado("No se pudo calcular: " + (causa == null ? "error desconocido" : causa.getMessage()), true);
-            botonRepartir.setDisable(false);
+            terminarOperacion();
         });
-
-        Thread hilo = new Thread(tarea);
-        hilo.setDaemon(true);
-        hilo.start();
+        tareaActual = tarea;
+        iniciarHilo(tarea);
     }
 
     private void mostrarResultado(Reparto reparto, CalculadoraEquity.Resultado resultado) {
@@ -633,7 +807,8 @@ public class PokerEquityInterfaz extends Application {
             }
         }
 
-        mostrarEstado("", false);
+        mostrarEstado("Equity calculada: " + resultado.iteraciones + " repartos evaluados."
+                + (manoActual != null && !manoActual.puedeAvanzar() ? " Mano finalizada." : ""), false);
     }
 
     // Resalta las cinco cartas que forman la mejor mano del jugador

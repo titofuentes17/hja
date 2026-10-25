@@ -178,6 +178,12 @@ public class AsientoVista extends JugadorVista {
         return activo.isSelected();
     }
 
+    // En el recorrido obligatorio participan siempre los seis asientos.
+    public void setParticipacionFija(boolean fija) {
+        if (fija) activo.setSelected(true);
+        activo.setDisable(esHero || fija);
+    }
+
     public String getCartasTexto() {
         return cartasManual.getText();
     }
