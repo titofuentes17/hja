@@ -7,6 +7,9 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.layout.HBox;
 
 // Un asiento de la mesa de equity: es un JugadorVista (nombre + cartas) al que
@@ -22,20 +25,20 @@ import javafx.scene.layout.HBox;
 public class AsientoVista extends JugadorVista {
 
     private static final String ESTILO_NORMAL =
-            "-fx-background-color: rgba(5,18,14,0.88);"
-            + "-fx-border-color: #C9A227;"
+            "-fx-background-color: rgba(8,29,24,0.97);"
+            + "-fx-border-color: #8D7942;"
             + "-fx-border-width: 1.5;"
             + "-fx-border-radius: 10;"
             + "-fx-background-radius: 10;";
 
     private static final String ESTILO_GANADOR =
-            "-fx-background-color: rgba(40,32,5,0.92);"
-            + "-fx-border-color: #FFD700;"
+            "-fx-background-color: rgba(38,35,18,0.97);"
+            + "-fx-border-color: #E5BD58;"
             + "-fx-border-width: 3;"
             + "-fx-border-radius: 10;"
             + "-fx-background-radius: 10;";
 
-    private static final String ESTILO_CAMPO_RANGO = "-fx-font-size: 11px;";
+    private static final String ESTILO_CAMPO_RANGO = "-fx-font-size: 11px; -fx-background-radius: 5; -fx-border-radius: 5;";
 
     private final int indice;
     private final boolean esHero;
@@ -46,6 +49,8 @@ public class AsientoVista extends JugadorVista {
     private boolean retirado;
     private final Label manoLabel;
     private final TextField equity;
+    private final StackPane barraEquity;
+    private final Region rellenoEquity;
     private final TextField cartasManual;
 
     private final TextField rangoTexto;
@@ -68,8 +73,8 @@ public class AsientoVista extends JugadorVista {
         setPrefWidth(165);
         setMinWidth(165);
         setMaxWidth(165);
-        setPadding(new Insets(5));
-        setSpacing(3);
+        setPadding(new Insets(7));
+        setSpacing(4);
         setStyle(ESTILO_NORMAL);
 
         // Check "Jugando" (el hero siempre juega)
@@ -81,6 +86,10 @@ public class AsientoVista extends JugadorVista {
         fold.setId("fold-" + indice);
         fold.setDisable(true);
         fold.setTooltip(new Tooltip("Retirarse de esta mano. Las cartas siguen fuera del mazo."));
+        fold.setStyle("-fx-background-color: #2C4439; -fx-text-fill: #F0F3ED;"
+                + "-fx-background-radius: 5; -fx-font-size: 10px; -fx-cursor: hand;");
+        fold.disabledProperty().addListener((obs, antes, deshabilitado) ->
+                fold.setOpacity(deshabilitado ? 0.48 : 1.0));
         HBox participacion = new HBox(8, activo, fold);
         participacion.setAlignment(Pos.CENTER);
         getChildren().add(0, participacion);
@@ -105,6 +114,23 @@ public class AsientoVista extends JugadorVista {
 
         HBox filaEquity = new HBox(5, etiquetaEquity, equity);
         filaEquity.setAlignment(Pos.CENTER);
+        // Barra personalizada: evita que el tema de JavaFX oculte el relleno.
+        Region pistaEquity = new Region();
+        pistaEquity.setPrefSize(145, 10);
+        pistaEquity.setMinSize(145, 10);
+        pistaEquity.setMaxSize(145, 10);
+        pistaEquity.setStyle("-fx-background-color: #344D42; -fx-background-radius: 5;");
+        rellenoEquity = new Region();
+        rellenoEquity.setPrefSize(0, 10);
+        rellenoEquity.setMinSize(0, 10);
+        rellenoEquity.setMaxHeight(10);
+        rellenoEquity.setStyle("-fx-background-color: #E4BA55; -fx-background-radius: 5;");
+        barraEquity = new StackPane(pistaEquity, rellenoEquity);
+        barraEquity.setPrefSize(145, 10);
+        barraEquity.setMinSize(145, 10);
+        barraEquity.setMaxSize(145, 10);
+        StackPane.setAlignment(rellenoEquity, Pos.CENTER_LEFT);
+        Tooltip.install(barraEquity, new Tooltip("Equity: porcentaje estimado de ganar o empatar el bote"));
 
         // Cartas manuales
         cartasManual = new TextField();
@@ -131,7 +157,13 @@ public class AsientoVista extends JugadorVista {
         infoRango.setStyle("-fx-text-fill: #D9D9D9; -fx-font-size: 10px;");
         infoRango.setMinHeight(13);
 
-        getChildren().addAll(manoLabel, filaEquity, cartasManual, filaRango, infoRango);
+        getChildren().addAll(manoLabel, filaEquity, barraEquity, cartasManual, filaRango, infoRango);
+        estiloCampo(cartasManual);
+        estiloCampo(rangoTexto);
+        estiloCampo(porcentaje);
+        for (TextField campo : new TextField[] { cartasManual, rangoTexto, porcentaje }) {
+            campo.disabledProperty().addListener((obs, antes, ahora) -> estiloCampo(campo));
+        }
 
         // Exclusión mutua: si hay texto en uno, el otro queda deshabilitado
         rangoTexto.textProperty().addListener((obs, antes, ahora) -> {
@@ -161,10 +193,21 @@ public class AsientoVista extends JugadorVista {
     }
 
     private void estiloEquityNormal() {
-        equity.setStyle("-fx-control-inner-background: #F4F4F4;"
+        equity.setStyle("-fx-control-inner-background: #E8EEE8;"
                 + "-fx-font-family: 'Consolas';"
                 + "-fx-font-size: 12px;"
                 + "-fx-font-weight: bold;");
+    }
+
+    private void estiloCampo(TextField campo) {
+        if (campo.isDisabled()) {
+            campo.setStyle(ESTILO_CAMPO_RANGO
+                    + "-fx-control-inner-background: #414A45; -fx-text-fill: #AAB4AD;"
+                    + "-fx-prompt-text-fill: #9AA69E; -fx-opacity: 0.75;");
+        } else {
+            campo.setStyle(ESTILO_CAMPO_RANGO
+                    + "-fx-control-inner-background: #E9F0E9; -fx-text-fill: #182B22;");
+        }
     }
 
     // JugadorVista.reiniciar() deja el nombre sin color: lo restauramos
@@ -231,7 +274,27 @@ public class AsientoVista extends JugadorVista {
 
     public void setEquity(String texto, String detalle) {
         equity.setText(texto);
+        // Admite formato español (47,63 %) y punto decimal.
+        // Si no hay un resultado válido, la barra se muestra vacía.
+        double valor = 0;
+        if (texto != null) {
+            String numero = texto.trim().replace("%", "").replace(',', '.').trim();
+            try {
+                valor = Double.parseDouble(numero);
+            } catch (NumberFormatException ex) {
+                valor = 0;
+            }
+        }
+        actualizarBarraEquity(Double.isFinite(valor) ? valor : 0);
         equity.setTooltip(detalle == null || detalle.isEmpty() ? null : new Tooltip(detalle));
+    }
+
+    private void actualizarBarraEquity(double porcentajeEquity) {
+        double proporcion = Math.max(0, Math.min(100, porcentajeEquity)) / 100.0;
+        double ancho = 145.0 * proporcion;
+        rellenoEquity.setPrefWidth(ancho);
+        rellenoEquity.setMinWidth(ancho);
+        rellenoEquity.setMaxWidth(ancho);
     }
 
     public void setManoTexto(String texto) {
@@ -244,6 +307,7 @@ public class AsientoVista extends JugadorVista {
 
     public void limpiarResultado() {
         equity.clear();
+        actualizarBarraEquity(0);
         equity.setTooltip(null);
         manoLabel.setText("");
         marcarGanador(false);
@@ -282,12 +346,12 @@ public class AsientoVista extends JugadorVista {
     //   info:       texto corto bajo los cuadros
     //   detalle:    texto largo para el tooltip (null = sin tooltip)
     public void mostrarRango(String colorFondo, String info, String detalle) {
-        rangoTexto.setStyle(ESTILO_CAMPO_RANGO);
-        porcentaje.setStyle(ESTILO_CAMPO_RANGO);
+        estiloCampo(rangoTexto);
+        estiloCampo(porcentaje);
 
         if (colorFondo != null) {
             TextField enUso = !rangoTexto.getText().isBlank() ? rangoTexto : porcentaje;
-            enUso.setStyle(ESTILO_CAMPO_RANGO
+            if (!enUso.isDisabled()) enUso.setStyle(ESTILO_CAMPO_RANGO
                     + "-fx-control-inner-background: " + colorFondo + ";"
                     + "-fx-text-fill: #111111;");
         }

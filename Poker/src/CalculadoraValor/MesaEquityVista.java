@@ -23,22 +23,22 @@ public class MesaEquityVista extends Pane {
     public static final int NUM_ASIENTOS = 6;
 
     private static final double ANCHO = 900;
-    private static final double ALTO = 670;
+    private static final double ALTO = 615;
 
     private static final double CENTRO_X = ANCHO / 2;
-    private static final double CENTRO_Y = 330;
+    private static final double CENTRO_Y = 305;
 
     private static final double ANCHO_ASIENTO = 165;
     private static final double ALTO_ASIENTO = 265;
 
     // Centro de cada asiento: hero, J1..J5 en sentido horario
     private static final double[][] POSICIONES = {
-        {450, 520},   // hero (abajo)
-        {125, 470},   // J1 (abajo izquierda)
-        {125, 190},   // J2 (arriba izquierda)
-        {450, 140},   // J3 (arriba)
-        {775, 190},   // J4 (arriba derecha)
-        {775, 470}    // J5 (abajo derecha)
+        {450, 475},   // HERO (abajo)
+        {125, 450},   // J1 (abajo izquierda)
+        {125, 155},   // J2 (arriba izquierda)
+        {450, 120},   // J3 (arriba)
+        {775, 155},   // J4 (arriba derecha)
+        {775, 450}    // J5 (abajo derecha)
     };
 
     private final List<AsientoVista> asientos = new ArrayList<>();
@@ -50,10 +50,10 @@ public class MesaEquityVista extends Pane {
         setMaxSize(ANCHO, ALTO);
 
         // Tapete
-        Ellipse tapete = new Ellipse(CENTRO_X, CENTRO_Y, 345, 160);
-        tapete.setFill(Color.web("#176B3A"));
-        tapete.setStroke(Color.web("#4A2C17"));
-        tapete.setStrokeWidth(8);
+        Ellipse tapete = new Ellipse(CENTRO_X, CENTRO_Y, 350, 160);
+        tapete.setFill(Color.web("#146C47"));
+        tapete.setStroke(Color.web("#A8843B"));
+        tapete.setStrokeWidth(7);
         getChildren().add(tapete);
 
         // Cartas del board

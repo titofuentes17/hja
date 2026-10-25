@@ -16,14 +16,21 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.Group;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.stage.Screen;
+import javafx.geometry.Rectangle2D;
 import javafx.util.Duration;
 
 // Calculadora de equity para 6 jugadores.
@@ -86,28 +93,69 @@ public class PokerEquityInterfaz extends Application {
 
     @Override
     public void start(Stage escenario) {
+        escenario.initStyle(StageStyle.DECORATED);
+        escenario.setMaximized(false);
         StackPane fondoGeneral = new StackPane();
-        fondoGeneral.setStyle("-fx-background-color: linear-gradient(to bottom, #071A14, #0B2B20, #07110E);");
+        fondoGeneral.setStyle("-fx-background-color: #071711;");
 
         BorderPane raiz = new BorderPane();
-        raiz.setPadding(new Insets(8));
+        raiz.setPadding(new Insets(12, 16, 12, 16));
         raiz.setStyle("-fx-background-color: transparent;");
 
-        Label titulo = new Label("♠  CALCULADORA DE EQUITY  ♥");
-        titulo.setStyle("-fx-font-size: 21px; -fx-font-weight: bold; -fx-text-fill: #F5F5F5;");
-        VBox parteSuperior = new VBox(titulo);
-        parteSuperior.setAlignment(Pos.CENTER);
+        Label titulo = new Label("♠  POKER EQUITY STUDIO");
+        titulo.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #F2F5EF;");
+        Label subtitulo = new Label("TEXAS HOLD'EM  /  ANALISIS DE PROBABILIDADES");
+        subtitulo.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #A6B5A9;");
+        VBox cabecera = new VBox(3, titulo, subtitulo);
+        Label marca = new Label("●  EQUITY LAB");
+        marca.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #E0BE68;");
+        Region separador = new Region();
+        HBox.setHgrow(separador, Priority.ALWAYS);
+        HBox parteSuperior = new HBox(12, cabecera, separador, marca);
+        parteSuperior.setAlignment(Pos.CENTER_LEFT);
+        parteSuperior.setPadding(new Insets(4, 6, 12, 6));
         raiz.setTop(parteSuperior);
 
         crupier = new CrupierVista();
         mesa = new MesaEquityVista();
 
-        VBox centro = new VBox(2, crupier, mesa);
-        centro.setAlignment(Pos.CENTER);
-        raiz.setCenter(centro);
+        // La mesa mantiene sus coordenadas internas; escalamos todo el conjunto
+        // (crupier + mesa) para que los seis asientos sean visibles sin scroll.
+        VBox centro = new VBox(4, crupier, mesa);
+        centro.setAlignment(Pos.TOP_CENTER);
+        centro.setPadding(new Insets(4, 0, 4, 0));
+        centro.setMinWidth(900);
+        centro.setPrefWidth(900);
+        centro.setStyle("-fx-background-color: #091F18; -fx-background-radius: 16;");
+
+        Group mesaEscalable = new Group(centro);
+        StackPane contenedorMesa = new StackPane(mesaEscalable);
+        contenedorMesa.setAlignment(Pos.CENTER);
+        contenedorMesa.setMinSize(0, 0);
+        contenedorMesa.setStyle("-fx-background-color: #091F18;"
+                + "-fx-border-color: #25493B; -fx-border-radius: 16;");
+        raiz.setCenter(contenedorMesa);
+
+        // El Group tiene en cuenta la escala al calcular su tamaño. Escalar
+        // el Group en sí evita afectar las coordenadas de las animaciones.
+        Runnable ajustarMesa = () -> {
+            double anchoNatural = centro.getLayoutBounds().getWidth();
+            double altoNatural = centro.getLayoutBounds().getHeight();
+            double anchoDisponible = contenedorMesa.getWidth() - 12;
+            double altoDisponible = contenedorMesa.getHeight() - 12;
+            if (anchoNatural <= 0 || altoNatural <= 0
+                    || anchoDisponible <= 0 || altoDisponible <= 0) return;
+            double escala = Math.min(1.0, Math.min(
+                    anchoDisponible / anchoNatural, altoDisponible / altoNatural));
+            centro.setScaleX(escala);
+            centro.setScaleY(escala);
+        };
+        contenedorMesa.widthProperty().addListener((obs, anterior, nuevo) -> ajustarMesa.run());
+        contenedorMesa.heightProperty().addListener((obs, anterior, nuevo) -> ajustarMesa.run());
+        centro.layoutBoundsProperty().addListener((obs, anterior, nuevo) -> ajustarMesa.run());
 
         raiz.setRight(construirPanelControl());
-        BorderPane.setMargin(raiz.getRight(), new Insets(0, 0, 0, 10));
+        BorderPane.setMargin(raiz.getRight(), new Insets(0, 0, 0, 14));
 
         // Cada asiento avisa a la interfaz cuando cambia su rango
         for (AsientoVista asiento : mesa.getAsientos()) {
@@ -115,18 +163,19 @@ public class PokerEquityInterfaz extends Application {
             asiento.setOnFold(() -> retirarJugador(asiento.getIndice()));
         }
 
-        ScrollPane desplazable = new ScrollPane(raiz);
-        desplazable.setFitToWidth(true);
-        desplazable.setFitToHeight(true);
-        desplazable.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-
-        fondoGeneral.getChildren().add(desplazable);
-
+        fondoGeneral.getChildren().add(raiz);
         actualizarRangos();
-
-        Scene escena = new Scene(fondoGeneral, 1340, 880);
-        escenario.setTitle("Calculadora de Equity - Poker");
+        // Respetar el área visible de Windows (incluye la barra de tareas).
+        // Una ventana mayor que la pantalla oculta la barra de título y la X.
+        Rectangle2D area = Screen.getPrimary().getVisualBounds();
+        double anchoVentana = Math.min(1280, Math.max(640, area.getWidth() - 60));
+        double altoVentana = Math.min(760, Math.max(480, area.getHeight() - 65));
+        Scene escena = new Scene(fondoGeneral, anchoVentana, altoVentana);
+        escenario.setTitle("Poker Equity Studio");
+        escenario.setMinWidth(Math.min(950, anchoVentana));
+        escenario.setMinHeight(Math.min(600, altoVentana));
         escenario.setScene(escena);
+        escenario.centerOnScreen();
         escenario.show();
         actualizarControles();
     }
@@ -140,13 +189,7 @@ public class PokerEquityInterfaz extends Application {
         // ---------- Rangos ----------
         Label tituloRango = tituloSeccion("RANGOS");
 
-        Label ayudaRango = etiqueta("Cada jugador tiene su cuadro de rango bajo su equity: escribe un "
-                + "rango (AA,KK,AKs,77+,A5s-A2s) o un porcentaje de mejores manos. "
-                + "Si usas uno, el otro se desactiva.");
-        ayudaRango.setWrapText(true);
-        ayudaRango.setMaxWidth(290);
-        ayudaRango.setStyle("-fx-text-fill: #8FA89C; -fx-font-size: 11px;");
-
+       
         Label etiquetaRanking = etiqueta("Ranking para los porcentajes:");
 
         rankingCombo = new ComboBox<>();
@@ -155,23 +198,12 @@ public class PokerEquityInterfaz extends Application {
         rankingCombo.setMaxWidth(Double.MAX_VALUE);
         rankingCombo.setOnAction(e -> actualizarRangos());
 
-        Label leyenda = new Label("Verde: la mano está dentro del rango\n"
-                + "Rojo: la mano está fuera del rango\n"
-                + "Naranja: el rango no es válido");
-        leyenda.setStyle("-fx-text-fill: #E2E2E2; -fx-font-size: 11px;");
-
-        repartirEnRango = new CheckBox("Repartir las manos dentro de los rangos");
-        repartirEnRango.setStyle("-fx-text-fill: #E2E2E2; -fx-font-size: 12px;");
-
-        equityRango = new CheckBox("Equity del rango completo");
-        equityRango.setStyle("-fx-text-fill: #E2E2E2; -fx-font-size: 12px;");
-
-        Label notaRango = etiqueta("Sin marcar «Repartir», cada jugador recibe una mano cualquiera y el "
-                + "cuadro indica si está dentro o fuera. Con «Equity del rango completo», la equity de "
-                + "un jugador con rango se calcula sobre todas sus manos posibles, no solo la repartida.");
-        notaRango.setWrapText(true);
-        notaRango.setMaxWidth(290);
-        notaRango.setStyle("-fx-text-fill: #8FA89C; -fx-font-size: 10px;");
+        // Se conservan los controles internos para mantener la compatibilidad
+        // con el reparto y el calculo existentes, pero no se muestran.
+        repartirEnRango = new CheckBox();
+        repartirEnRango.setSelected(false);
+        equityRango = new CheckBox();
+        equityRango.setSelected(false);
 
         Button limpiarRangos = new Button("Limpiar todos los rangos");
         limpiarRangos.setMaxWidth(Double.MAX_VALUE);
@@ -188,12 +220,6 @@ public class PokerEquityInterfaz extends Application {
         modoCartas.getItems().addAll("Cartas aleatorias", "Cartas manuales");
         modoCartas.setValue("Cartas aleatorias");
         modoCartas.setMaxWidth(Double.MAX_VALUE);
-
-        Label ayudaCartas = etiqueta("En modo manual escribe las cartas en cada asiento "
-                + "(si lo dejas vacío, ese jugador recibe cartas aleatorias).");
-        ayudaCartas.setWrapText(true);
-        ayudaCartas.setMaxWidth(290);
-        ayudaCartas.setStyle("-fx-text-fill: #8FA89C; -fx-font-size: 10px;");
 
         modoCartas.setOnAction(e -> {
             boolean manual = modoCartas.getValue().contains("manual");
@@ -250,47 +276,120 @@ public class PokerEquityInterfaz extends Application {
         botonSiguiente.setMaxWidth(Double.MAX_VALUE);
         botonSiguiente.setOnAction(e -> siguienteCalle());
         calleActual = etiqueta("Sin mano iniciada");
-        Label ayudaCalles = etiqueta("Por calles: equity de las seis manos repartidas. "
-                + "El board manual se reserva y se revela poco a poco. Los cambios de cartas "
-                + "o rangos de reparto se aplican a la próxima mano. "
-                + "Fold retira al jugador y conserva sus cartas fuera del mazo. "
-                + "El análisis de rangos completos se conserva en «Escenario aislado».");
-        ayudaCalles.setWrapText(true);
-        ayudaCalles.setMaxWidth(290);
-
         estado = new Label("Pulsa Nueva mano para empezar en preflop.");
         estado.setWrapText(true);
         estado.setMaxWidth(290);
         estado.setStyle("-fx-text-fill: " + COLOR_NEUTRO + "; -fx-font-size: 12px;");
 
-        configuracion = new VBox(7,
-                tituloRango, ayudaRango, etiquetaRanking, rankingCombo, leyenda,
-                repartirEnRango, equityRango, notaRango, limpiarRangos,
+        configuracion = new VBox(12,
+                tituloRango, etiquetaRanking, rankingCombo, limpiarRangos,
                 new Separator(),
-                tituloCartas, modoCartas, ayudaCartas, modoBoard, calleBoard, boardManual);
-        VBox panel = new VBox(7, modoAnalisis, ayudaCalles, configuracion,
+                tituloCartas, modoCartas, modoBoard, calleBoard, boardManual);
+        Label tituloModo = tituloSeccion("MODO DE ANÁLISIS");
+        VBox panel = new VBox(14, tituloModo, modoAnalisis, configuracion,
                 new Separator(), calleActual, botonRepartir, botonSiguiente, estado);
 
-        panel.setPadding(new Insets(12));
-        panel.setPrefWidth(320);
-        panel.setMinWidth(320);
-        panel.setMaxWidth(320);
+        panel.setPadding(new Insets(20));
+        panel.setPrefWidth(316);
+        panel.setMinWidth(316);
+        panel.setMaxWidth(316);
         panel.setAlignment(Pos.TOP_LEFT);
-        panel.setStyle("-fx-background-color: rgba(5,18,14,0.92);" + "-fx-border-color: #C9A227;" + "-fx-border-width: 2;"
-                + "-fx-border-radius: 10;" + "-fx-background-radius: 10;");
+        panel.setStyle("-fx-background-color: #10271F; -fx-border-color: #355445;"
+                + "-fx-border-width: 1; -fx-border-radius: 16; -fx-background-radius: 16;");
+        String estiloCombo = "-fx-background-color: #213B31; -fx-text-fill: #F0F4EE;"
+                + "-fx-background-radius: 7; -fx-border-color: #456254;"
+                + "-fx-border-radius: 7; -fx-pref-height: 34; -fx-font-size: 12px;";
+        for (ComboBox<String> combo : java.util.Arrays.asList(
+                modoAnalisis, rankingCombo, modoCartas, modoBoard, calleBoard)) {
+            combo.setStyle(estiloCombo);
+            // ComboBox utiliza celdas internas: -fx-text-fill en el ComboBox
+            // no cambia necesariamente el texto de la celda seleccionada.
+            combo.setButtonCell(new ListCell<String>() {
+                @Override protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty ? null : item);
+                    setStyle("-fx-text-fill: #F4F6F0; -fx-background-color: transparent;"
+                            + "-fx-font-size: 12px; -fx-opacity: 1;");
+                }
+            });
+            combo.setCellFactory(lista -> new ListCell<String>() {
+                @Override protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty ? null : item);
+                    setStyle("-fx-text-fill: #16251E; -fx-background-color: #F2F5F0;"
+                            + "-fx-font-size: 12px;");
+                }
+            });
+            // El estado deshabilitado se muestra en gris, sin perder legibilidad.
+            combo.disabledProperty().addListener((obs, anterior, deshabilitado) -> {
+                combo.setOpacity(1.0);
+                combo.setStyle(deshabilitado
+                        ? "-fx-background-color: #35403C; -fx-text-fill: #A9B3AE;"
+                          + "-fx-background-radius: 7; -fx-border-color: #53615A;"
+                          + "-fx-border-radius: 7; -fx-pref-height: 34; -fx-font-size: 12px;"
+                        : estiloCombo);
+                combo.getButtonCell().setStyle("-fx-text-fill: "
+                        + (deshabilitado ? "#A9B3AE" : "#F4F6F0")
+                        + "; -fx-background-color: transparent; -fx-font-size: 12px;");
+            });
+            // Sincronizar también el estado inicial.
+            if (combo.isDisabled()) {
+                combo.setStyle("-fx-background-color: #35403C; -fx-border-color: #53615A;"
+                        + "-fx-background-radius: 7; -fx-border-radius: 7; -fx-pref-height: 34;");
+                combo.getButtonCell().setStyle("-fx-text-fill: #A9B3AE; -fx-background-color: transparent;");
+            }
+        }
+        boardManual.setStyle("-fx-background-color: #213B31; -fx-text-fill: #F0F4EE;"
+                + "-fx-prompt-text-fill: #A4B6A9; -fx-background-radius: 7;"
+                + "-fx-border-color: #456254; -fx-border-radius: 7; -fx-pref-height: 34;");
+        boardManual.disabledProperty().addListener((obs, antes, deshabilitado) -> {
+            boardManual.setOpacity(1.0);
+            boardManual.setStyle(deshabilitado
+                    ? "-fx-background-color: #35403C; -fx-text-fill: #A9B3AE;"
+                      + "-fx-background-radius: 7; -fx-border-color: #53615A;"
+                      + "-fx-border-radius: 7; -fx-pref-height: 34;"
+                    : "-fx-background-color: #213B31; -fx-text-fill: #F0F4EE;"
+                      + "-fx-background-radius: 7; -fx-border-color: #456254;"
+                      + "-fx-border-radius: 7; -fx-pref-height: 34;");
+        });
+        limpiarRangos.setStyle("-fx-background-color: #274237; -fx-text-fill: #E7EEE7;"
+                + "-fx-background-radius: 7; -fx-pref-height: 34; -fx-cursor: hand;");
+        botonSiguiente.setStyle("-fx-background-color: #2D493D; -fx-text-fill: #F0F4EE;"
+                + "-fx-font-weight: bold; -fx-background-radius: 8; -fx-pref-height: 38; -fx-cursor: hand;");
+        botonRepartir.setStyle("-fx-background-color: #D4AB4D; -fx-text-fill: #102118;"
+                + "-fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 8;"
+                + "-fx-pref-height: 43; -fx-cursor: hand;");
 
+        // Los botones no disponibles se distinguen de los activos.
+        botonSiguiente.disabledProperty().addListener((obs, antes, deshabilitado) -> {
+            botonSiguiente.setOpacity(1.0);
+            botonSiguiente.setStyle(deshabilitado
+                    ? "-fx-background-color: #35403C; -fx-text-fill: #A9B3AE;"
+                      + "-fx-background-radius: 8; -fx-pref-height: 38;"
+                    : "-fx-background-color: #2D493D; -fx-text-fill: #F0F4EE;"
+                      + "-fx-font-weight: bold; -fx-background-radius: 8; -fx-pref-height: 38;");
+        });
+        botonRepartir.disabledProperty().addListener((obs, antes, deshabilitado) -> {
+            botonRepartir.setOpacity(1.0);
+            botonRepartir.setStyle(deshabilitado
+                    ? "-fx-background-color: #35403C; -fx-text-fill: #A9B3AE;"
+                      + "-fx-background-radius: 8; -fx-pref-height: 43;"
+                    : "-fx-background-color: #D4AB4D; -fx-text-fill: #102118;"
+                      + "-fx-font-weight: bold; -fx-font-size: 13px;"
+                      + "-fx-background-radius: 8; -fx-pref-height: 43;");
+        });
         return panel;
     }
 
     private Label tituloSeccion(String texto) {
         Label l = new Label(texto);
-        l.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #D6B85A;");
+        l.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #E0BE68;");
         return l;
     }
 
     private Label etiqueta(String texto) {
         Label l = new Label(texto);
-        l.setStyle("-fx-font-size: 12px; -fx-text-fill: #E2E2E2;");
+        l.setStyle("-fx-font-size: 12px; -fx-text-fill: #B9CCC0;");
         return l;
     }
 
