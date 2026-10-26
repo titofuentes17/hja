@@ -11,8 +11,9 @@ import java.util.Set;
 public final class RepartidorEquity {
     private RepartidorEquity() { }
 
+    // cartasPorJugador: 2 en Hold'em, 4 en Omaha
     public static ManoEquity nuevaMano(List<List<Carta>> manuales, List<Rango> rangos,
-            List<Carta> boardReservado, boolean dentroDeRango, Random rnd) {
+            List<Carta> boardReservado, boolean dentroDeRango, int cartasPorJugador, Random rnd) {
         if (manuales.size() != ManoEquity.JUGADORES || rangos.size() != ManoEquity.JUGADORES) {
             throw new IllegalArgumentException("La mano debe comenzar con seis jugadores.");
         }
@@ -24,7 +25,8 @@ public final class RepartidorEquity {
         ManoEquity.validar(boardReservado, fijas);
         for (List<Carta> mano : manuales) {
             if (mano != null) {
-                if (mano.size() != 2) throw new IllegalArgumentException("Escribe exactamente dos cartas por jugador.");
+                if (mano.size() != cartasPorJugador) throw new IllegalArgumentException(
+                        "Escribe exactamente " + cartasPorJugador + " cartas por jugador.");
                 ManoEquity.validar(mano, fijas);
             }
         }
@@ -71,7 +73,10 @@ public final class RepartidorEquity {
             Collections.shuffle(mazo, rnd);
             int siguiente = 0;
             for (int i = 0; i < manos.size(); i++) {
-                if (manos.get(i) == null) manos.set(i, List.of(mazo.get(siguiente++), mazo.get(siguiente++)));
+                if (manos.get(i) == null) {
+                    manos.set(i, List.copyOf(mazo.subList(siguiente, siguiente + cartasPorJugador)));
+                    siguiente += cartasPorJugador;
+                }
             }
             List<Carta> board = new ArrayList<>(boardReservado);
             while (board.size() < 5) board.add(mazo.get(siguiente++));

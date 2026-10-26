@@ -1,5 +1,7 @@
 .metadata
 bin/
+# Las DLL de JavaFX van dentro del proyecto para que abra en cualquier ordenador
+!Poker/lib/javafx-sdk-21.0.11/bin/
 tmp/
 *.tmp
 *.bak

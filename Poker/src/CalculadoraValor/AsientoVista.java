@@ -56,6 +56,7 @@ public class AsientoVista extends JugadorVista {
     private final TextField rangoTexto;
     private final TextField porcentaje;
     private final Label infoRango;
+    private boolean omaha;
 
     // La interfaz se entera de cualquier cambio en el rango o en el check "Jugando"
     private Runnable alCambiarRango = () -> { };
@@ -272,6 +273,27 @@ public class AsientoVista extends JugadorVista {
         cartasManual.setDisable(!manual);
     }
 
+    // Omaha: 4 cartas por jugador (más pequeñas y solapadas para que quepan en
+    // el asiento). Los rangos están escritos para manos de 2 cartas, así que en
+    // Omaha se vacían y se deshabilitan.
+    public void setModalidadOmaha(boolean omaha) {
+        this.omaha = omaha;
+        if (omaha) {
+            setNumeroCartas(4, 44, 59, -9);
+            cartasManual.setPromptText("Cartas: AhKdQsJc");
+            limpiarRango();
+            rangoTexto.setDisable(true);
+            porcentaje.setDisable(true);
+        } else {
+            setNumeroCartas(2, 66, 88, 4);
+            cartasManual.setPromptText("Cartas: AhKd");
+            rangoTexto.setDisable(false);
+            porcentaje.setDisable(false);
+        }
+        infoRango.setText(omaha ? "Rangos solo en Hold'em" : "");
+        cartasManual.clear();
+    }
+
     public void setEquity(String texto, String detalle) {
         equity.setText(texto);
         // Admite formato español (47,63 %) y punto decimal.
@@ -356,7 +378,7 @@ public class AsientoVista extends JugadorVista {
                     + "-fx-text-fill: #111111;");
         }
 
-        infoRango.setText(info == null ? "" : info);
+        infoRango.setText(omaha ? "Rangos solo en Hold'em" : (info == null ? "" : info));
 
         Tooltip tip = detalle == null || detalle.isEmpty() ? null : new Tooltip(detalle);
         rangoTexto.setTooltip(tip);

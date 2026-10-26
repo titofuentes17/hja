@@ -5,10 +5,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Estado de seis jugadores; el board futuro se reserva pero nunca se filtra al cálculo. */
+/** Estado de seis jugadores; el board futuro se reserva pero nunca se filtra al cálculo.
+ *  Cada jugador tiene 2 cartas (Hold'em) o 4 (Omaha). */
 public final class ManoEquity {
     public static final int JUGADORES = 6;
     private final List<List<Carta>> manos;
+    private final int cartasPorJugador;
     private final List<Carta> boardCompleto;
     private Calle calle = Calle.PREFLOP;
     private final boolean[] retirados = new boolean[JUGADORES];
@@ -17,11 +19,15 @@ public final class ManoEquity {
         if (manos.size() != JUGADORES || boardCompleto.size() != 5) {
             throw new IllegalArgumentException("Se necesitan seis manos y cinco comunitarias reservadas.");
         }
+        cartasPorJugador = manos.get(0) == null ? 0 : manos.get(0).size();
+        if (cartasPorJugador != 2 && cartasPorJugador != 4) {
+            throw new IllegalArgumentException("Cada jugador debe tener 2 cartas (Hold'em) o 4 (Omaha).");
+        }
         Set<Integer> usadas = new HashSet<>();
         List<List<Carta>> copia = new ArrayList<>();
         for (List<Carta> mano : manos) {
-            if (mano == null || mano.size() != 2) {
-                throw new IllegalArgumentException("Cada jugador debe tener exactamente dos cartas.");
+            if (mano == null || mano.size() != cartasPorJugador) {
+                throw new IllegalArgumentException("Todos los jugadores deben tener " + cartasPorJugador + " cartas.");
             }
             validar(mano, usadas);
             copia.add(List.copyOf(mano));
@@ -45,6 +51,10 @@ public final class ManoEquity {
 
     public List<List<Carta>> getManos() {
         return manos;
+    }
+
+    public boolean isOmaha() {
+        return cartasPorJugador == 4;
     }
 
     public Calle getCalle() {

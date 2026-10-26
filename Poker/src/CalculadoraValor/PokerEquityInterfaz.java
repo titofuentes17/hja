@@ -42,6 +42,8 @@ import javafx.util.Duration;
 //    jugador está dentro de su rango, y rojo si está fuera.
 //  - Las cartas de los jugadores y el board pueden ser aleatorios o manuales.
 //  - Todos los jugadores muestran su equity en un cuadro de solo lectura.
+//  - Modalidad Texas Hold'em (2 cartas) u Omaha (4 cartas: la mano se forma
+//    con exactamente 2 cartas propias y exactamente 3 comunes).
 public class PokerEquityInterfaz extends Application {
 
     private static final int ITERACIONES = 100_000;
@@ -73,6 +75,8 @@ public class PokerEquityInterfaz extends Application {
     private Button botonRepartir;
     private Button botonSiguiente;
     private ComboBox<String> modoAnalisis;
+    private ComboBox<String> modalidad;
+    private Label subtitulo;
     private Label calleActual;
     private VBox configuracion;
     private Label estado;
@@ -104,7 +108,7 @@ public class PokerEquityInterfaz extends Application {
 
         Label titulo = new Label("♠  POKER EQUITY STUDIO");
         titulo.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #F2F5EF;");
-        Label subtitulo = new Label("TEXAS HOLD'EM  /  ANALISIS DE PROBABILIDADES");
+        subtitulo = new Label(textoSubtitulo());
         subtitulo.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #A6B5A9;");
         VBox cabecera = new VBox(3, titulo, subtitulo);
         Label marca = new Label("●  EQUITY LAB");
@@ -156,6 +160,11 @@ public class PokerEquityInterfaz extends Application {
 
         raiz.setRight(construirPanelControl());
         BorderPane.setMargin(raiz.getRight(), new Insets(0, 0, 0, 14));
+
+        // Selector de modalidad en la cabecera (el panel lateral va justo de altura)
+        HBox filaModalidad = new HBox(8, etiqueta("Modalidad:"), modalidad);
+        filaModalidad.setAlignment(Pos.CENTER_RIGHT);
+        parteSuperior.getChildren().add(2, filaModalidad);
 
         // Cada asiento avisa a la interfaz cuando cambia su rango
         for (AsientoVista asiento : mesa.getAsientos()) {
@@ -258,6 +267,12 @@ public class PokerEquityInterfaz extends Application {
             else repartir();
         });
 
+        modalidad = new ComboBox<>();
+        modalidad.getItems().addAll("Texas Hold'em", "Omaha");
+        modalidad.setValue("Texas Hold'em");
+        modalidad.setPrefWidth(160);
+        modalidad.setOnAction(e -> cambiarModalidad());
+
         modoAnalisis = new ComboBox<>();
         modoAnalisis.getItems().addAll("Mano por calles (6 jugadores)", "Escenario aislado");
         modoAnalisis.getSelectionModel().selectFirst();
@@ -300,7 +315,7 @@ public class PokerEquityInterfaz extends Application {
                 + "-fx-background-radius: 7; -fx-border-color: #456254;"
                 + "-fx-border-radius: 7; -fx-pref-height: 34; -fx-font-size: 12px;";
         for (ComboBox<String> combo : java.util.Arrays.asList(
-                modoAnalisis, rankingCombo, modoCartas, modoBoard, calleBoard)) {
+                modalidad, modoAnalisis, rankingCombo, modoCartas, modoBoard, calleBoard)) {
             combo.setStyle(estiloCombo);
             // ComboBox utiliza celdas internas: -fx-text-fill en el ComboBox
             // no cambia necesariamente el texto de la celda seleccionada.
@@ -402,11 +417,43 @@ public class PokerEquityInterfaz extends Application {
         return modoAnalisis != null && modoAnalisis.getSelectionModel().getSelectedIndex() == 0;
     }
 
+    private boolean esOmaha() {
+        return modalidad != null && "Omaha".equals(modalidad.getValue());
+    }
+
+    private String textoSubtitulo() {
+        return (esOmaha() ? "OMAHA" : "TEXAS HOLD'EM") + "  /  ANALISIS DE PROBABILIDADES";
+    }
+
+    // Omaha se calcula igual que la mano por calles (con Fold): se fuerza ese modo.
+    // Cada asiento pasa a tener 4 cartas y se vacía la mesa.
+    private void cambiarModalidad() {
+        invalidarOperacion();
+        boolean omaha = esOmaha();
+        subtitulo.setText(textoSubtitulo());
+        if (omaha) {
+            modoAnalisis.getSelectionModel().selectFirst();
+        }
+        manoActual = null;
+        manosRepartidas = null;
+        for (AsientoVista asiento : mesa.getAsientos()) {
+            asiento.setModalidadOmaha(omaha);
+        }
+        mesa.reiniciarTodo();
+        actualizarRangos();
+        calleActual.setText("Sin mano iniciada");
+        mostrarEstado(omaha
+                ? "Omaha: 4 cartas por jugador; la mano usa exactamente 2 propias y 3 comunes."
+                : "Configura las cartas y pulsa el botón de inicio.", false);
+        actualizarControles();
+    }
+
     private void actualizarControles() {
         boolean porCalles = esManoPorCalles();
         configuracion.setDisable(ocupado);
         mesa.setDisable(ocupado);
-        modoAnalisis.setDisable(ocupado);
+        modoAnalisis.setDisable(ocupado || esOmaha());
+        modalidad.setDisable(ocupado);
         botonRepartir.setDisable(ocupado);
         botonRepartir.setText(porCalles ? "Nueva mano" : "Repartir escenario y calcular");
         equityRango.setDisable(porCalles);
@@ -471,13 +518,15 @@ public class PokerEquityInterfaz extends Application {
             return;
         }
         boolean restringir = repartirEnRango.isSelected();
+        final int cartasPorJugador = esOmaha() ? 4 : 2;
         empezarOperacion();
         mostrarEstado("Preparando la nueva mano...", false);
         final long version = versionOperacion;
         Task<ManoEquity> preparacion = new Task<>() {
             @Override
             protected ManoEquity call() {
-                return RepartidorEquity.nuevaMano(manuales, rangos, reservado, restringir, new Random());
+                return RepartidorEquity.nuevaMano(manuales, rangos, reservado, restringir,
+                        cartasPorJugador, new Random());
             }
         };
         tareaActual = preparacion;
@@ -501,6 +550,7 @@ public class PokerEquityInterfaz extends Application {
         reparto.manos.addAll(manoActual.getManos());
         reparto.board = manoActual.getBoardVisible();
         reparto.cartasRetiradas = manoActual.getCartasRetiradas();
+        reparto.omaha = manoActual.isOmaha();
         return reparto;
     }
 
@@ -615,6 +665,7 @@ public class PokerEquityInterfaz extends Application {
         final List<List<Carta>> manos = new ArrayList<>();   // una entrada por asiento (null si no juega)
         List<Carta> board = new ArrayList<>();
         List<Carta> cartasRetiradas = List.of();
+        boolean omaha;   // 4 cartas por jugador, 2 propias + 3 comunes
         // Rango con el que se calcula la equity de cada asiento (null = su mano concreta)
         final Rango[] rangosEquity = new Rango[MesaEquityVista.NUM_ASIENTOS];
     }
@@ -798,14 +849,18 @@ public class PokerEquityInterfaz extends Application {
         long retraso = 0;
         final long intervalo = 750;
 
-        // Dos vueltas de cartas a los jugadores
-        for (int numeroCarta = 0; nuevo && numeroCarta < 2; numeroCarta++) {
+        // Una vuelta por carta: 2 en Hold'em, 4 en Omaha. En Omaha se reparte el
+        // doble de cartas, así que van al doble de velocidad (tarda lo mismo)
+        int cartasPorJugador = reparto.omaha ? 4 : 2;
+        final double factor = reparto.omaha ? 0.5 : 1.0;
+        final long intervaloJugadores = Math.round(intervalo * factor);
+        for (int numeroCarta = 0; nuevo && numeroCarta < cartasPorJugador; numeroCarta++) {
             final int indiceCarta = numeroCarta;
             for (AsientoVista asiento : reparto.activos) {
                 final AsientoVista destino = asiento;
                 final Carta carta = reparto.manos.get(asiento.getIndice()).get(indiceCarta);
-                programar(retraso, () -> crupier.repartirCarta(destino.getCartaVista(indiceCarta), carta));
-                retraso += intervalo;
+                programar(retraso, () -> crupier.repartirCarta(destino.getCartaVista(indiceCarta), carta, factor));
+                retraso += intervaloJugadores;
             }
         }
 
@@ -849,8 +904,13 @@ public class PokerEquityInterfaz extends Application {
         actualizarRangos();
 
         final List<Rango> rangos = new ArrayList<>();
+        final List<List<Carta>> manosActivas = new ArrayList<>();
         for (AsientoVista asiento : reparto.activos) {
             asiento.setEquity("...", null);
+            manosActivas.add(reparto.manos.get(asiento.getIndice()));
+            if (reparto.omaha) {
+                continue;
+            }
 
             Rango rangoEquity = reparto.rangosEquity[asiento.getIndice()];
             if (rangoEquity != null) {
@@ -867,6 +927,9 @@ public class PokerEquityInterfaz extends Application {
         Task<CalculadoraEquity.Resultado> tarea = new Task<>() {
             @Override
             protected CalculadoraEquity.Resultado call() {
+                if (reparto.omaha) {
+                    return CalculadoraEquity.calcularOmaha(manosActivas, board, reparto.cartasRetiradas);
+                }
                 return CalculadoraEquity.calcular(rangos, board, reparto.cartasRetiradas,
                         ITERACIONES, new Random());
             }
@@ -908,25 +971,32 @@ public class PokerEquityInterfaz extends Application {
 
         if (reparto.activos.size() == 1) reparto.activos.get(0).marcarGanador(true);
 
-        // Nombre de la mejor mano de cada jugador (con las clases ya existentes)
+        // Nombre de la mejor mano de cada jugador (con las clases ya existentes:
+        // Jugador en Hold'em y JugadorOmaha en Omaha)
         if (reparto.board.size() >= 3) {
-            List<Jugador> jugadores = new ArrayList<>();
+            List<ValorMano> mejores = new ArrayList<>();
             for (AsientoVista asiento : reparto.activos) {
-                Jugador jugador = new Jugador(asiento.getIdJugador(),
-                        new ArrayList<>(reparto.manos.get(asiento.getIndice())),
-                        new ArrayList<>(reparto.board));
-                jugadores.add(jugador);
-                asiento.setManoTexto(jugador.getNombreMano());
+                List<Carta> propias = new ArrayList<>(reparto.manos.get(asiento.getIndice()));
+                List<Carta> comunes = new ArrayList<>(reparto.board);
+                if (reparto.omaha) {
+                    JugadorOmaha jugador = new JugadorOmaha(asiento.getIdJugador(), propias, comunes);
+                    mejores.add(jugador.getMejorMano());
+                    asiento.setManoTexto(jugador.getNombreMano());
+                } else {
+                    Jugador jugador = new Jugador(asiento.getIdJugador(), propias, comunes);
+                    mejores.add(jugador.getMejorMano());
+                    asiento.setManoTexto(jugador.getNombreMano());
+                }
             }
 
             // Con el board completo hay showdown: resaltamos a los ganadores
             if (reparto.board.size() == 5) {
-                Jugador mejor = Collections.max(jugadores);
-                for (int i = 0; i < jugadores.size(); i++) {
-                    if (jugadores.get(i).compareTo(mejor) == 0) {
+                ValorMano mejor = Collections.max(mejores, ValorMano::compararCon);
+                for (int i = 0; i < mejores.size(); i++) {
+                    if (mejores.get(i).compararCon(mejor) == 0) {
                         AsientoVista asiento = reparto.activos.get(i);
                         asiento.marcarGanador(true);
-                        destacarMejorMano(asiento, jugadores.get(i));
+                        destacarMejorMano(asiento, mejores.get(i).getCartas());
                     }
                 }
             }
@@ -938,11 +1008,11 @@ public class PokerEquityInterfaz extends Application {
     }
 
     // Resalta las cinco cartas que forman la mejor mano del jugador
-    private void destacarMejorMano(AsientoVista asiento, Jugador jugador) {
+    private void destacarMejorMano(AsientoVista asiento, List<Carta> mejorMano) {
         List<CartaVista> vistas = new ArrayList<>(asiento.getCartasVista());
         vistas.addAll(mesa.getBoard());
 
-        for (Carta cartaMejor : jugador.getMejorMano().getCartas()) {
+        for (Carta cartaMejor : mejorMano) {
             for (CartaVista vista : vistas) {
                 if (vista.representa(cartaMejor)) {
                     vista.destacar();

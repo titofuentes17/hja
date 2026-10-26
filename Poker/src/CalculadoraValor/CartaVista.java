@@ -61,6 +61,17 @@ public class CartaVista extends StackPane {
     // =========================================================
 
     public CartaVista() {
+        this(ANCHO, ALTO);
+    }
+
+
+    /*
+     * Carta con otro tamaño.
+     *
+     * En Omaha cada jugador tiene 4 cartas y
+     * con el tamaño normal no caben en su asiento.
+     */
+    public CartaVista(double ancho, double alto) {
 
         setAlignment(Pos.CENTER);
 
@@ -69,7 +80,7 @@ public class CartaVista extends StackPane {
         // FONDO
         // =====================================================
 
-        fondo = new Rectangle(ANCHO, ALTO);
+        fondo = new Rectangle(ancho, alto);
 
         fondo.setArcWidth(8);
         fondo.setArcHeight(8);
@@ -85,8 +96,8 @@ public class CartaVista extends StackPane {
 
         imagenCarta = new ImageView();
 
-        imagenCarta.setFitWidth(ANCHO);
-        imagenCarta.setFitHeight(ALTO);
+        imagenCarta.setFitWidth(ancho);
+        imagenCarta.setFitHeight(alto);
 
         /*
          * Muy importante:

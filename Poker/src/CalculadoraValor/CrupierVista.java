@@ -116,6 +116,18 @@ public class CrupierVista extends VBox {
     // =========================================================
 
     public void repartirCarta(CartaVista destino, Carta carta) {
+        repartirCarta(destino, carta, 1.0);
+    }
+
+
+    /*
+     * Igual, pero con los movimientos de la mano
+     * multiplicados por 'factorDuracion'.
+     *
+     * En Omaha se reparten el doble de cartas, así
+     * que la mano se mueve el doble de rápido (0.5).
+     */
+    public void repartirCarta(CartaVista destino, Carta carta, double factorDuracion) {
 
         /*
          * IMPORTANTE:
@@ -163,7 +175,7 @@ public class CrupierVista extends VBox {
         // 1. MANO HACIA EL MAZO
         // =====================================================
 
-        TranslateTransition cogerCarta = new TranslateTransition(Duration.millis(180), manoRepartidora);
+        TranslateTransition cogerCarta = new TranslateTransition(Duration.millis(180 * factorDuracion), manoRepartidora);
 
         cogerCarta.setToX(haciaMazoX);
 
@@ -191,7 +203,7 @@ public class CrupierVista extends VBox {
         double recorridoY = haciaMazoY + (posicionDestino.getCenterY() - posicionMazo.getCenterY()) * porcentajeRecorrido;
 
 
-        TranslateTransition empujarCarta = new TranslateTransition(Duration.millis(230), manoRepartidora);
+        TranslateTransition empujarCarta = new TranslateTransition(Duration.millis(230 * factorDuracion), manoRepartidora);
 
         empujarCarta.setToX(recorridoX);
 
@@ -225,7 +237,7 @@ public class CrupierVista extends VBox {
         // 3. MANO VUELVE A SU POSICIÓN
         // =====================================================
 
-        TranslateTransition volver = new TranslateTransition(Duration.millis(250), manoRepartidora);
+        TranslateTransition volver = new TranslateTransition(Duration.millis(250 * factorDuracion), manoRepartidora);
 
         volver.setToX(0);
 

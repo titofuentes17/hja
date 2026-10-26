@@ -13,6 +13,7 @@ public class JugadorVista extends VBox {
     private Label posicion;
     private Label nombreMano;
     private List<CartaVista> cartas;
+    private HBox filaCartas;
 
     // Constructor normal: Texas Hold'em y apartado 3 usan 2 cartas
     public JugadorVista(String id) {
@@ -31,7 +32,7 @@ public class JugadorVista extends VBox {
         posicion.setManaged(false);
 
         cartas = new ArrayList<>();
-        HBox filaCartas = new HBox(4);
+        filaCartas = new HBox(4);
         filaCartas.setAlignment(Pos.CENTER);
 
         for (int i = 0; i < numeroCartas; i++) {
@@ -61,6 +62,21 @@ public class JugadorVista extends VBox {
 
     public CartaVista getCartaVista(int indice) {
         return cartas.get(indice);
+    }
+
+    // Cambia las cartas del jugador (p.ej. de 2 a 4 al pasar a Omaha).
+    // Con separación negativa las cartas se solapan, como en la mano.
+    public void setNumeroCartas(int numeroCartas, double ancho, double alto, double separacion) {
+        cartas.clear();
+        filaCartas.getChildren().clear();
+        filaCartas.setSpacing(separacion);
+
+        for (int i = 0; i < numeroCartas; i++) {
+            CartaVista carta = new CartaVista(ancho, alto);
+            carta.setVisible(false);
+            cartas.add(carta);
+            filaCartas.getChildren().add(carta);
+        }
     }
 
     public void mostrarResultado(int puesto, String mano, boolean ganador) {
