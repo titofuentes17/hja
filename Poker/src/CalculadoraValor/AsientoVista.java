@@ -58,6 +58,11 @@ public class AsientoVista extends JugadorVista {
     private final Label infoRango;
     private boolean omaha;
 
+    // Fondo del cuadro de rango en uso: verde (dentro), rojo (fuera),
+    // naranja (no válido) o null (sin color). Se guarda para volver a
+    // aplicarlo cuando el cuadro se habilita al terminar un cálculo.
+    private String colorRango;
+
     // La interfaz se entera de cualquier cambio en el rango o en el check "Jugando"
     private Runnable alCambiarRango = () -> { };
 
@@ -205,6 +210,10 @@ public class AsientoVista extends JugadorVista {
             campo.setStyle(ESTILO_CAMPO_RANGO
                     + "-fx-control-inner-background: #414A45; -fx-text-fill: #AAB4AD;"
                     + "-fx-prompt-text-fill: #9AA69E; -fx-opacity: 0.75;");
+        } else if (colorRango != null && campo == campoRangoEnUso()) {
+            campo.setStyle(ESTILO_CAMPO_RANGO
+                    + "-fx-control-inner-background: " + colorRango + ";"
+                    + "-fx-text-fill: #111111;");
         } else {
             campo.setStyle(ESTILO_CAMPO_RANGO
                     + "-fx-control-inner-background: #E9F0E9; -fx-text-fill: #182B22;");
@@ -357,6 +366,11 @@ public class AsientoVista extends JugadorVista {
         return !rangoTexto.getText().isBlank() || !porcentaje.getText().isBlank();
     }
 
+    // Cuadro de rango que se está usando (el de texto si tiene algo escrito)
+    private TextField campoRangoEnUso() {
+        return !rangoTexto.getText().isBlank() ? rangoTexto : porcentaje;
+    }
+
     // Vacía los dos cuadros de rango (esto también los vuelve a habilitar)
     public void limpiarRango() {
         rangoTexto.clear();
@@ -368,15 +382,9 @@ public class AsientoVista extends JugadorVista {
     //   info:       texto corto bajo los cuadros
     //   detalle:    texto largo para el tooltip (null = sin tooltip)
     public void mostrarRango(String colorFondo, String info, String detalle) {
+        colorRango = colorFondo;
         estiloCampo(rangoTexto);
         estiloCampo(porcentaje);
-
-        if (colorFondo != null) {
-            TextField enUso = !rangoTexto.getText().isBlank() ? rangoTexto : porcentaje;
-            if (!enUso.isDisabled()) enUso.setStyle(ESTILO_CAMPO_RANGO
-                    + "-fx-control-inner-background: " + colorFondo + ";"
-                    + "-fx-text-fill: #111111;");
-        }
 
         infoRango.setText(omaha ? "Rangos solo en Hold'em" : (info == null ? "" : info));
 
