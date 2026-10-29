@@ -8,6 +8,7 @@ import java.util.Random;
 import java.util.Set;
 
 
+//Prepara el reparto, evita cartas duplicadas y posibilidad de cartas manuales, devuelve una manoEquity
 public final class RepartidorEquity {
     private RepartidorEquity() { }
 
@@ -30,7 +31,9 @@ public final class RepartidorEquity {
                 ManoEquity.validar(mano, fijas);
             }
         }
+        
 
+        //Reparto por rangos
         // Filtrar una sola vez. Reintentar el reparto completo evita que la elección
         // de un rango bloquee permanentemente otro rango compatible.
         List<List<int[]>> opciones = new ArrayList<>();

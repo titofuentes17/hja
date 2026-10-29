@@ -5,15 +5,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Estado de seis jugadores; el board futuro se reserva pero nunca se filtra al cálculo.
- *  Cada jugador tiene 2 cartas (Hold'em) o 4 (Omaha). */
+// Estado de seis jugadores; el board futuro se reserva pero nunca se filtra al cálculo.
+ // Cada jugador tiene 2 cartas (Hold'em) o 4 (Omaha).
+
+
+//Guarda el estado de una mano: cartas de jugadores, comunitarias y calle actual
+
 public final class ManoEquity {
+	
+	
     public static final int JUGADORES = 6;
     private final List<List<Carta>> manos;
     private final int cartasPorJugador;
     private final List<Carta> boardCompleto;
     private Calle calle = Calle.PREFLOP;
-    private final boolean[] retirados = new boolean[JUGADORES];
+    private final boolean[] retirados = new boolean[JUGADORES];//Indica jugadores que han hecho fold
 
     public ManoEquity(List<List<Carta>> manos, List<Carta> boardCompleto) {
         if (manos.size() != JUGADORES || boardCompleto.size() != 5) {
@@ -23,7 +29,7 @@ public final class ManoEquity {
         if (cartasPorJugador != 2 && cartasPorJugador != 4) {
             throw new IllegalArgumentException("Cada jugador debe tener 2 cartas (Hold'em) o 4 (Omaha).");
         }
-        Set<Integer> usadas = new HashSet<>();
+        Set<Integer> usadas = new HashSet<>();//Comprobamos que no esten usadas
         List<List<Carta>> copia = new ArrayList<>();
         for (List<Carta> mano : manos) {
             if (mano == null || mano.size() != cartasPorJugador) {
@@ -73,14 +79,15 @@ public final class ManoEquity {
         return retirados[indice];
     }
 
-    /** Índices de asiento estables: retirar a alguien no desplaza al resto. */
+    // Índices de asiento estables: retirar a alguien no desplaza al resto
+    
     public List<Integer> getJugadoresEnMano() {
         List<Integer> indices = new ArrayList<>();
         for (int i = 0; i < JUGADORES; i++) if (!retirados[i]) indices.add(i);
         return List.copyOf(indices);
     }
 
-    /** Sus cartas siguen siendo conocidas y nunca vuelven al mazo. */
+    // Sus cartas siguen siendo conocidas y nunca vuelven al mazo
     public List<Carta> getCartasRetiradas() {
         List<Carta> cartas = new ArrayList<>();
         for (int i = 0; i < JUGADORES; i++) if (retirados[i]) cartas.addAll(manos.get(i));
@@ -89,20 +96,26 @@ public final class ManoEquity {
 
     public void retirar(int indice) {
         if (indice < 0 || indice >= JUGADORES) throw new IllegalArgumentException("Asiento no válido.");
+        
         if (retirados[indice]) throw new IllegalStateException("El jugador ya ha hecho Fold.");
+        
         if (!puedeAvanzar()) throw new IllegalStateException("La mano ya ha finalizado.");
+        
         retirados[indice] = true;
     }
 
-    /** Devuelve exclusivamente las cartas que se acaban de revelar. */
+    // Devuelve exclusivamente las cartas que se acaban de revelar
+    
     public List<Carta> avanzar() {
         if (!puedeAvanzar()) throw new IllegalStateException("La mano ya ha finalizado.");
         int anteriores = calle.getComunitarias();
+        
         calle = calle.siguiente();
         return List.copyOf(boardCompleto.subList(anteriores, calle.getComunitarias()));
     }
 
-    /** Solo jugadores en mano, en el orden de getJugadoresEnMano(). */
+    // Solo jugadores en mano, en el orden de getJugadoresEnMano()
+    
     public List<Rango> getRangosConcretos() {
         return getJugadoresEnMano().stream().map(manos::get)
                 .map(m -> Rango.deCartas(m.get(0), m.get(1))).toList();

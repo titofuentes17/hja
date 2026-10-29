@@ -305,7 +305,7 @@ public class AsientoVista extends JugadorVista {
 
     public void setEquity(String texto, String detalle) {
         equity.setText(texto);
-        // Admite formato español (47,63 %) y punto decimal.
+        
         // Si no hay un resultado válido, la barra se muestra vacía.
         double valor = 0;
         if (texto != null) {

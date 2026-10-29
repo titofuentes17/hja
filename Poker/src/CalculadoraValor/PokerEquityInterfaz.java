@@ -44,6 +44,8 @@ import javafx.util.Duration;
 //  - Todos los jugadores muestran su equity en un cuadro de solo lectura.
 //  - Modalidad Texas Hold'em (2 cartas) u Omaha (4 cartas: la mano se forma
 //    con exactamente 2 cartas propias y exactamente 3 comunes).
+
+
 public class PokerEquityInterfaz extends Application {
 
     private static final int ITERACIONES = 100_000;
@@ -61,7 +63,7 @@ public class PokerEquityInterfaz extends Application {
     private MesaEquityVista mesa;
     private CrupierVista crupier;
 
-    // Controles de rango (generales; cada jugador tiene los suyos en su asiento)
+    // Controles de rango (generales, cada jugador tiene los suyos en su asiento)
     private ComboBox<String> rankingCombo;
     private CheckBox repartirEnRango;
     private CheckBox equityRango;
@@ -375,6 +377,7 @@ public class PokerEquityInterfaz extends Application {
                 + "-fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 8;"
                 + "-fx-pref-height: 43; -fx-cursor: hand;");
 
+        
         // Los botones no disponibles se distinguen de los activos.
         botonSiguiente.disabledProperty().addListener((obs, antes, deshabilitado) -> {
             botonSiguiente.setOpacity(1.0);
