@@ -1,6 +1,7 @@
 	package CalculadoraValor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -44,6 +45,10 @@ import javafx.util.Duration;
 //  - Todos los jugadores muestran su equity en un cuadro de solo lectura.
 //  - Modalidad Texas Hold'em (2 cartas) u Omaha (4 cartas: la mano se forma
 //    con exactamente 2 cartas propias y exactamente 3 comunes).
+//  - Modo "Apuestas NLHE" (práctica 3, apartado 2.1): cada jugador tiene además
+//    un equity mínimo (EM). En cada turno el jugador puede hacer Bet manual o
+//    dejar que la aplicación decida (Bet/Call si su mano está en el rango y su
+//    equity llega al EM; si no, Fold).
 
 
 public class PokerEquityInterfaz extends Application {
@@ -92,6 +97,24 @@ public class PokerEquityInterfaz extends Application {
     // o si el asiento no juega). Sirve para comprobar si cada mano está en su rango.
     private List<List<Carta>> manosRepartidas;
 
+    // ---------- Modo de apuestas (práctica 3) ----------
+    private RondaApuestas ronda;
+    // Equity (0..100) de cada asiento en la calle actual. Se calcula una vez al
+    // empezar la calle, con los jugadores que siguen en la mano.
+    private final double[] equityCalle = new double[MesaEquityVista.NUM_ASIENTOS];
+    private boolean equityCalleLista;
+    // Colores de rango y EM de cada asiento: se pintan cuando el jugador decide
+    // y se borran al empezar cada calle (null = sin color)
+    private final String[] colorRangoDecision = new String[MesaEquityVista.NUM_ASIENTOS];
+    private final String[] colorEMDecision = new String[MesaEquityVista.NUM_ASIENTOS];
+    private HBox barraApuestas;
+    private Label turnoLabel;
+    private Label boteLabel;
+    private String ganadoresTexto = "";   // "Gana Highjack", "Empate: Button, UTG"
+    private Button botonBetManual;
+    private Button botonAutomatico;
+    private Button botonAutoCalle;
+
 
     // =========================================================
     // VENTANA
@@ -127,7 +150,10 @@ public class PokerEquityInterfaz extends Application {
 
         // La mesa mantiene sus coordenadas internas; escalamos todo el conjunto
         // (crupier + mesa) para que los seis asientos sean visibles sin scroll.
-        VBox centro = new VBox(4, crupier, mesa);
+        // Botones de las apuestas, debajo de la mesa (solo en el modo de apuestas)
+        construirBarraApuestas();
+
+        VBox centro = new VBox(4, crupier, mesa, barraApuestas);
         centro.setAlignment(Pos.TOP_CENTER);
         centro.setPadding(new Insets(4, 0, 4, 0));
         centro.setMinWidth(900);
@@ -276,13 +302,20 @@ public class PokerEquityInterfaz extends Application {
         modalidad.setOnAction(e -> cambiarModalidad());
 
         modoAnalisis = new ComboBox<>();
-        modoAnalisis.getItems().addAll("Mano por calles (6 jugadores)", "Escenario aislado");
+        modoAnalisis.getItems().addAll("Mano por calles (6 jugadores)", "Escenario aislado",
+                "Apuestas NLHE (6 jugadores)");
         modoAnalisis.getSelectionModel().selectFirst();
         modoAnalisis.setMaxWidth(Double.MAX_VALUE);
         modoAnalisis.setOnAction(e -> {
             invalidarOperacion();
+            subtitulo.setText(textoSubtitulo());
             manoActual = null;
             manosRepartidas = null;
+            ronda = null;
+            limpiarDecisiones();
+            for (AsientoVista asiento : mesa.getAsientos()) {
+                asiento.setModoApuestas(esApuestas(), RondaApuestas.POSICIONES[asiento.getIndice()]);
+            }
             mesa.reiniciarTodo();
             actualizarRangos();
             calleActual.setText("Sin mano iniciada");
@@ -416,8 +449,13 @@ public class PokerEquityInterfaz extends Application {
         estado.setStyle("-fx-text-fill: " + (error ? COLOR_ERROR : COLOR_NEUTRO) + "; -fx-font-size: 12px;");
     }
 
+    // El modo de apuestas también va por calles (preflop, flop, turn y river)
     private boolean esManoPorCalles() {
-        return modoAnalisis != null && modoAnalisis.getSelectionModel().getSelectedIndex() == 0;
+        return modoAnalisis != null && (modoAnalisis.getSelectionModel().getSelectedIndex() == 0 || esApuestas());
+    }
+
+    private boolean esApuestas() {
+        return modoAnalisis != null && modoAnalisis.getSelectionModel().getSelectedIndex() == 2;
     }
 
     private boolean esOmaha() {
@@ -425,6 +463,7 @@ public class PokerEquityInterfaz extends Application {
     }
 
     private String textoSubtitulo() {
+        if (esApuestas()) return "NLHE  /  APUESTAS Y TOMA DE DECISIONES";
         return (esOmaha() ? "OMAHA" : "TEXAS HOLD'EM") + "  /  ANALISIS DE PROBABILIDADES";
     }
 
@@ -456,14 +495,17 @@ public class PokerEquityInterfaz extends Application {
         configuracion.setDisable(ocupado);
         mesa.setDisable(ocupado);
         modoAnalisis.setDisable(ocupado || esOmaha());
-        modalidad.setDisable(ocupado);
+        modalidad.setDisable(ocupado || esApuestas());
         botonRepartir.setDisable(ocupado);
         botonRepartir.setText(porCalles ? "Nueva mano" : "Repartir escenario y calcular");
         equityRango.setDisable(porCalles);
         calleBoard.setDisable(porCalles || modoBoard.getValue().contains("manual"));
         botonSiguiente.setVisible(porCalles);
         botonSiguiente.setManaged(porCalles);
-        botonSiguiente.setDisable(ocupado || manoActual == null || !manoActual.puedeAvanzar());
+        // En el modo de apuestas no se pasa de calle hasta que han hablado todos
+        boolean apuestasPendientes = esApuestas() && (ronda == null || !ronda.calleTerminada());
+        botonSiguiente.setDisable(ocupado || manoActual == null || !manoActual.puedeAvanzar()
+                || apuestasPendientes);
         if (manoActual != null) {
             botonSiguiente.setText(manoActual.puedeAvanzar()
                     ? "Mostrar " + manoActual.getCalle().siguiente().name().toLowerCase(java.util.Locale.ROOT)
@@ -474,6 +516,7 @@ public class PokerEquityInterfaz extends Application {
             asiento.setFoldDisponible(porCalles && !ocupado && manoActual != null
                     && manoActual.puedeAvanzar() && !manoActual.estaRetirado(asiento.getIndice()));
         }
+        actualizarControlesApuestas();
     }
 
     // Todos los callbacks comprueban esta versión, incluso si la cancelación llega tarde.
@@ -523,6 +566,8 @@ public class PokerEquityInterfaz extends Application {
         boolean restringir = repartirEnRango.isSelected();
         final int cartasPorJugador = esOmaha() ? 4 : 2;
         empezarOperacion();
+        ronda = null;
+        limpiarDecisiones();
         mostrarEstado("Preparando la nueva mano...", false);
         final long version = versionOperacion;
         Task<ManoEquity> preparacion = new Task<>() {
@@ -536,6 +581,8 @@ public class PokerEquityInterfaz extends Application {
         preparacion.setOnSucceeded(e -> {
             if (version != versionOperacion) return;
             manoActual = preparacion.getValue();
+            // Apuestas: se ponen las ciegas y empieza a hablar UTG
+            if (esApuestas()) ronda = new RondaApuestas(manoActual);
             calleActual.setText("Calle actual: PREFLOP");
             animarReparto(repartoActual(), true, 0);
         });
@@ -572,6 +619,11 @@ public class PokerEquityInterfaz extends Application {
         int anteriores = manoActual.getBoardVisible().size();
         empezarOperacion();
         manoActual.avanzar();
+        // Apuestas: nueva ronda en la calle; los colores de rango y EM se vuelven a pintar al decidir
+        if (ronda != null) {
+            ronda.empezarCalle();
+            limpiarDecisiones();
+        }
         calleActual.setText("Calle actual: " + manoActual.getCalle());
         // No se reinicia la mesa ni se vuelven a repartir las cartas propias.
         animarReparto(repartoActual(), false, anteriores);
@@ -621,8 +673,9 @@ public class PokerEquityInterfaz extends Application {
         }
 
         for (AsientoVista asiento : mesa.getAsientos()) {
+            asiento.mostrarEM(esApuestas() ? colorEMDecision[asiento.getIndice()] : null);
             if (!asiento.tieneRango()) {
-                asiento.mostrarRango(null, "", null);
+                asiento.mostrarRango(esApuestas() ? colorRangoDecision[asiento.getIndice()] : null, "", null);
                 continue;
             }
 
@@ -636,6 +689,12 @@ public class PokerEquityInterfaz extends Application {
 
             String resumen = String.format("%.1f %%", rango.porcentaje());
             String detalle = rango.size() + " combinaciones (" + resumen + " de las manos)";
+
+            // Apuestas: el color se pone cuando el jugador toma su decisión
+            if (esApuestas()) {
+                asiento.mostrarRango(colorRangoDecision[asiento.getIndice()], resumen, detalle);
+                continue;
+            }
 
             List<Carta> mano = null;
             if (manosRepartidas != null && asiento.isActivo()) {
@@ -965,6 +1024,13 @@ public class PokerEquityInterfaz extends Application {
             String detalle = String.format("Gana: %.2f %%   Empata: %.2f %%",
                     resultado.victorias[i] * 100, resultado.empates[i] * 100);
 
+            // Apuestas: se guarda para las decisiones de la calle. Se muestra con
+            // 2 decimales sin redondear, como en el enunciado (97,22 %, 2,77 %)
+            if (esApuestas()) {
+                equityCalle[asiento.getIndice()] = resultado.equity[i] * 100;
+                texto = formatoEquity(equityCalle[asiento.getIndice()]);
+            }
+
             Rango rangoEquity = reparto.rangosEquity[asiento.getIndice()];
             if (rangoEquity != null) {
                 detalle = "Equity del rango completo (" + rangoEquity.size() + " combos).  " + detalle;
@@ -992,8 +1058,9 @@ public class PokerEquityInterfaz extends Application {
                 }
             }
 
-            // Con el board completo hay showdown: resaltamos a los ganadores
-            if (reparto.board.size() == 5) {
+            // Con el board completo hay showdown: resaltamos a los ganadores.
+            // En el modo de apuestas el showdown llega al terminar las apuestas del river.
+            if (reparto.board.size() == 5 && !esApuestas()) {
                 ValorMano mejor = Collections.max(mejores, ValorMano::compararCon);
                 for (int i = 0; i < mejores.size(); i++) {
                     if (mejores.get(i).compararCon(mejor) == 0) {
@@ -1005,9 +1072,273 @@ public class PokerEquityInterfaz extends Application {
             }
         }
 
+        if (esApuestas()) {
+            equityCalleLista = true;
+            mostrarEstado("Equity calculada (" + resultado.iteraciones + " boards). " + textoTurno(), false);
+            return;
+        }
+
         mostrarEstado((reparto.activos.size() == 1 ? "Ganador por Fold. " : "")
                 + "Equity calculada: " + resultado.iteraciones + " repartos evaluados."
                 + (manoActual != null && !manoActual.puedeAvanzar() ? " Mano finalizada." : ""), false);
+    }
+
+    // =========================================================
+    // APUESTAS (práctica 3, apartado 2.1)
+    // =========================================================
+
+    // Barra debajo de la mesa: bote, de quién es el turno y los botones de decisión
+    private void construirBarraApuestas() {
+        boteLabel = new Label("");
+        boteLabel.setStyle("-fx-text-fill: #F2D16B; -fx-font-size: 14px; -fx-font-weight: bold;");
+        boteLabel.setMinWidth(110);
+
+        turnoLabel = new Label("");
+        turnoLabel.setStyle("-fx-text-fill: #4FC3F7; -fx-font-size: 13px; -fx-font-weight: bold;");
+        turnoLabel.setMinWidth(230);
+
+        botonBetManual = new Button("Bet manual (3 BB)");
+        botonBetManual.setOnAction(e -> betManual());
+        botonAutomatico = new Button("Decisión automática");
+        botonAutomatico.setOnAction(e -> decisionAutomatica());
+        botonAutoCalle = new Button("Automático hasta fin de calle");
+        botonAutoCalle.setOnAction(e -> decidirRestoCalle());
+
+        String activo = "-fx-background-color: #2D493D; -fx-text-fill: #F0F4EE;"
+                + "-fx-font-weight: bold; -fx-background-radius: 8; -fx-pref-height: 36; -fx-cursor: hand;";
+        String inactivo = "-fx-background-color: #35403C; -fx-text-fill: #A9B3AE;"
+                + "-fx-background-radius: 8; -fx-pref-height: 36;";
+        for (Button boton : List.of(botonBetManual, botonAutomatico, botonAutoCalle)) {
+            boton.setStyle(inactivo);
+            boton.setDisable(true);
+            boton.disabledProperty().addListener((obs, antes, deshabilitado) -> {
+                boton.setOpacity(1.0);
+                boton.setStyle(deshabilitado ? inactivo : activo);
+            });
+        }
+
+        barraApuestas = new HBox(10, boteLabel, turnoLabel, botonBetManual, botonAutomatico, botonAutoCalle);
+        barraApuestas.setAlignment(Pos.CENTER);
+        // Margen superior: el asiento de abajo sobresale un poco de la mesa
+        barraApuestas.setPadding(new Insets(24, 0, 8, 0));
+        barraApuestas.setVisible(false);
+        barraApuestas.setManaged(false);
+    }
+
+    private void actualizarControlesApuestas() {
+        boolean apuestas = esApuestas();
+        barraApuestas.setVisible(apuestas);
+        barraApuestas.setManaged(apuestas);
+
+        boolean disponible = turnoDisponible();
+        int turno = disponible ? ronda.getTurno() : -1;
+        botonBetManual.setDisable(!disponible || !ronda.puedeBet());
+        botonAutomatico.setDisable(!disponible);
+        botonAutoCalle.setDisable(!disponible);
+        for (AsientoVista asiento : mesa.getAsientos()) {
+            asiento.marcarTurno(asiento.getIndice() == turno);
+        }
+
+        boteLabel.setText(ronda != null ? "Bote: " + formatoBB(ronda.getBote()) : "Bote: —");
+
+        if (!apuestas) turnoLabel.setText("");
+        else if (ronda == null) turnoLabel.setText("Pulsa Nueva mano para empezar");
+        else if (turno >= 0) turnoLabel.setText("Turno: " + RondaApuestas.POSICIONES[turno]);
+        else if (ronda.manoTerminada()) turnoLabel.setText("Mano finalizada. " + ganadoresTexto);
+        else if (ronda.calleTerminada()) turnoLabel.setText("Apuestas del " + manoActual.getCalle() + " terminadas");
+        else turnoLabel.setText("Calculando equity...");
+    }
+
+    // Se puede decidir cuando ya está calculada la equity de la calle y queda alguien por hablar
+    private boolean turnoDisponible() {
+        return esApuestas() && !ocupado && ronda != null && equityCalleLista && !ronda.calleTerminada();
+    }
+
+    // Al empezar una mano o una calle: sin colores ni equity de la calle
+    private void limpiarDecisiones() {
+        Arrays.fill(colorRangoDecision, null);
+        Arrays.fill(colorEMDecision, null);
+        Arrays.fill(equityCalle, 0);
+        equityCalleLista = false;
+        actualizarRangos();
+    }
+
+    private String textoTurno() {
+        int turno = ronda == null ? -1 : ronda.getTurno();
+        if (turno < 0) return "";
+        return "Turno de " + RondaApuestas.POSICIONES[turno]
+                + (ronda.hayApuesta() ? " (hay una apuesta: Call o Fold)." : " (sin apuesta previa: Bet o Fold).");
+    }
+
+    // Bet manual: el usuario fuerza la apuesta sin tener en cuenta el rango ni el EM.
+    // Solo si no hay una apuesta previa en la calle.
+    private void betManual() {
+        if (!turnoDisponible() || !ronda.puedeBet()) return;
+        int turno = ronda.getTurno();
+        AsientoVista asiento = mesa.getAsiento(turno);
+        List<Carta> cartas = manoActual.getManos().get(turno);
+
+        // Si el jugador tiene rango y EM escritos, se pintan igualmente (como en el enunciado)
+        try {
+            Rango rango = obtenerRango(asiento);
+            if (rango != null) {
+                colorRangoDecision[turno] = rango.contiene(cartas.get(0), cartas.get(1)) ? FONDO_DENTRO : FONDO_FUERA;
+            }
+        } catch (IllegalArgumentException e) {
+            // Rango no válido: no se pinta
+        }
+        try {
+            colorEMDecision[turno] = equityCalle[turno] >= obtenerEM(asiento) ? FONDO_DENTRO : FONDO_FUERA;
+        } catch (IllegalArgumentException e) {
+            // Sin EM o EM no válido: no se pinta
+        }
+
+        aplicarAccion(RondaApuestas.Accion.BET, " (manual)", "Bet forzado por el usuario.");
+    }
+
+    // Decisión automática del jugador que tiene el turno. Necesita su rango y su EM.
+    // Devuelve false si no se ha podido decidir.
+    private boolean decisionAutomatica() {
+        if (!turnoDisponible()) return false;
+        int turno = ronda.getTurno();
+        AsientoVista asiento = mesa.getAsiento(turno);
+        String nombre = RondaApuestas.POSICIONES[turno];
+
+        Rango rango;
+        double equityMinimo;
+        try {
+            rango = obtenerRango(asiento);
+            if (rango == null) throw new IllegalArgumentException("escribe su rango para decidir automáticamente.");
+            equityMinimo = obtenerEM(asiento);
+        } catch (IllegalArgumentException e) {
+            mostrarEstado(nombre + ": " + e.getMessage(), true);
+            return false;
+        }
+
+        List<Carta> cartas = manoActual.getManos().get(turno);
+        boolean enRango = rango.contiene(cartas.get(0), cartas.get(1));
+        double equity = equityCalle[turno];
+        boolean llegaAlEM = equity >= equityMinimo;
+
+        // Rango: verde si la mano está dentro. EM: verde si el equity llega al EM.
+        colorRangoDecision[turno] = enRango ? FONDO_DENTRO : FONDO_FUERA;
+        colorEMDecision[turno] = llegaAlEM ? FONDO_DENTRO : FONDO_FUERA;
+
+        String motivo = Rango.clase(cartas.get(0), cartas.get(1))
+                + (enRango ? " dentro" : " fuera") + " del rango; equity "
+                + formatoEquity(equity) + (llegaAlEM ? " >= " : " < ")
+                + "EM " + String.format("%.2f %%", equityMinimo) + ".";
+        aplicarAccion(ronda.decidir(enRango, equity, equityMinimo), " (automático)", motivo);
+        return true;
+    }
+
+    // Decide automáticamente a todos los jugadores que faltan por hablar en la calle.
+    // Se para si a alguno le falta el rango o el EM.
+    private void decidirRestoCalle() {
+        while (turnoDisponible() && decisionAutomatica()) {
+            // cada vuelta decide un jugador
+        }
+    }
+
+    private void aplicarAccion(RondaApuestas.Accion accion, String modo, String motivo) {
+        int turno = ronda.getTurno();
+        AsientoVista asiento = mesa.getAsiento(turno);
+        ronda.aplicar(accion);
+
+        String texto = switch (accion) {
+            case BET -> "Bet " + formatoBB(RondaApuestas.APUESTA) + modo;
+            case CALL -> "Call " + formatoBB(RondaApuestas.APUESTA);
+            case FOLD -> "Fold";
+        };
+        if (accion == RondaApuestas.Accion.FOLD) {
+            asiento.setRetirado(true);
+        }
+        asiento.setAccion(texto);
+        actualizarRangos();
+
+        // El turno siguiente ya se ve en la barra de apuestas
+        String mensaje = RondaApuestas.POSICIONES[turno] + ": " + texto + ". " + motivo;
+        if (ronda.manoTerminada()) {
+            finalizarMano();
+        } else if (ronda.calleTerminada()) {
+            mostrarEstado(mensaje + " Pulsa \"Mostrar "
+                    + manoActual.getCalle().siguiente().name().toLowerCase(java.util.Locale.ROOT) + "\".", false);
+        } else {
+            mostrarEstado(mensaje, false);
+        }
+        actualizarControles();
+    }
+
+    // Fin de la mano: si solo queda uno se lleva el bote; si no, showdown en el river
+    // (con empate el bote se reparte a partes iguales)
+    private void finalizarMano() {
+        List<Integer> enMano = manoActual.getJugadoresEnMano();
+        List<Integer> ganadores = new ArrayList<>();
+        String como;
+
+        if (enMano.size() == 1) {
+            ganadores.add(enMano.get(0));
+            como = "el resto ha hecho Fold";
+        } else {
+            List<Carta> board = manoActual.getBoardVisible();
+            List<Jugador> jugadores = new ArrayList<>();
+            List<ValorMano> mejores = new ArrayList<>();
+            for (int indice : enMano) {
+                Jugador jugador = new Jugador(RondaApuestas.POSICIONES[indice],
+                        new ArrayList<>(manoActual.getManos().get(indice)), new ArrayList<>(board));
+                jugadores.add(jugador);
+                mejores.add(jugador.getMejorMano());
+            }
+            ValorMano mejor = Collections.max(mejores, ValorMano::compararCon);
+            String nombreMano = "";
+            for (int i = 0; i < mejores.size(); i++) {
+                if (mejores.get(i).compararCon(mejor) == 0) {
+                    ganadores.add(enMano.get(i));
+                    nombreMano = jugadores.get(i).getNombreMano();
+                    destacarMejorMano(mesa.getAsiento(enMano.get(i)), mejores.get(i).getCartas());
+                }
+            }
+            como = "showdown con " + nombreMano;
+        }
+
+        List<String> nombres = new ArrayList<>();
+        for (int indice : ganadores) {
+            mesa.getAsiento(indice).marcarGanador(true);
+            nombres.add(RondaApuestas.POSICIONES[indice]);
+        }
+        ganadoresTexto = (ganadores.size() == 1 ? "Gana " : "Empate: ") + String.join(", ", nombres);
+        String reparto = ganadores.size() == 1
+                ? "Gana " + nombres.get(0) + " (" + como + ") y se lleva el bote de " + formatoBB(ronda.getBote()) + "."
+                : "Empate entre " + String.join(", ", nombres) + " (" + como + "): "
+                        + formatoBB(ronda.getBote() / ganadores.size()) + " para cada uno.";
+        mostrarEstado("Mano finalizada. " + reparto, false);
+    }
+
+    // Equity mínimo (EM) escrito en el asiento, de 0 a 100
+    private double obtenerEM(AsientoVista asiento) {
+        String texto = asiento.getEMTexto();
+        if (texto == null || texto.isBlank()) {
+            throw new IllegalArgumentException("escribe su equity mínimo (EM) para decidir automáticamente.");
+        }
+        double valor;
+        try {
+            valor = Double.parseDouble(texto.trim().replace("%", "").replace(',', '.').trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("EM no válido: \"" + texto.trim() + "\"");
+        }
+        if (valor < 0 || valor > 100) throw new IllegalArgumentException("el EM debe estar entre 0 y 100.");
+        return valor;
+    }
+
+    // Equity (0..100) con 2 decimales sin redondear, como en el enunciado: 97,2222 -> "97,22 %"
+    private static String formatoEquity(double porcentaje) {
+        return String.format("%.2f %%", Math.floor(porcentaje * 100 + 1e-9) / 100);
+    }
+
+    // 3 -> "3 BB", 10.5 -> "10,5 BB"
+    private static String formatoBB(double bb) {
+        return (bb == Math.rint(bb) ? String.format("%.0f", bb) : String.format("%.2f", bb).replaceAll("0$", ""))
+                + " BB";
     }
 
     // Resalta las cinco cartas que forman la mejor mano del jugador

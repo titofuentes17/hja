@@ -22,6 +22,8 @@ import javafx.scene.layout.HBox;
 //     porcentaje (top X % de manos). Son excluyentes: si se usa uno, el otro
 //     queda deshabilitado. El fondo del cuadro en uso se pone verde o rojo
 //     según la mano del jugador esté dentro o fuera del rango.
+//   - en el modo de apuestas (práctica 3): su posición en la mesa, un cuadro
+//     para el equity mínimo (EM) y la última acción del jugador (Bet/Call/Fold)
 public class AsientoVista extends JugadorVista {
 
     private static final String ESTILO_NORMAL =
@@ -38,7 +40,19 @@ public class AsientoVista extends JugadorVista {
             + "-fx-border-radius: 10;"
             + "-fx-background-radius: 10;";
 
+    // Jugador al que le toca hablar en el modo de apuestas
+    private static final String ESTILO_TURNO =
+            "-fx-background-color: rgba(10,37,48,0.97);"
+            + "-fx-border-color: #4FC3F7;"
+            + "-fx-border-width: 3;"
+            + "-fx-border-radius: 10;"
+            + "-fx-background-radius: 10;";
+
     private static final String ESTILO_CAMPO_RANGO = "-fx-font-size: 11px; -fx-background-radius: 5; -fx-border-radius: 5;";
+
+    // Como en el enunciado: borde morado para el rango y naranja para el EM
+    private static final String BORDE_RANGO = "-fx-border-color: #9B6BE0; -fx-border-width: 1.5;";
+    private static final String BORDE_EM = "-fx-border-color: #F0923A; -fx-border-width: 1.5;";
 
     private final int indice;
     private final boolean esHero;
@@ -57,6 +71,15 @@ public class AsientoVista extends JugadorVista {
     private final TextField porcentaje;
     private final Label infoRango;
     private boolean omaha;
+
+    // Modo de apuestas (práctica 3)
+    private boolean modoApuestas;
+    private final Label accion;
+    private final Label etiquetaEM;
+    private final TextField equityMinimo;
+    private String colorEM;
+    private boolean ganador;
+    private boolean turno;
 
     // Fondo del cuadro de rango en uso: verde (dentro), rojo (fuera),
     // naranja (no válido) o null (sin color). Se guarda para volver a
@@ -96,7 +119,12 @@ public class AsientoVista extends JugadorVista {
                 + "-fx-background-radius: 5; -fx-font-size: 10px; -fx-cursor: hand;");
         fold.disabledProperty().addListener((obs, antes, deshabilitado) ->
                 fold.setOpacity(deshabilitado ? 0.48 : 1.0));
-        HBox participacion = new HBox(8, activo, fold);
+        // Última acción del jugador (solo en el modo de apuestas, ocupa el sitio del check)
+        accion = new Label("");
+        accion.setStyle("-fx-text-fill: #4FC3F7; -fx-font-size: 12px; -fx-font-weight: bold;");
+        accion.setVisible(false);
+        accion.setManaged(false);
+        HBox participacion = new HBox(8, activo, fold, accion);
         participacion.setAlignment(Pos.CENTER);
         getChildren().add(0, participacion);
 
@@ -163,11 +191,31 @@ public class AsientoVista extends JugadorVista {
         infoRango.setStyle("-fx-text-fill: #D9D9D9; -fx-font-size: 10px;");
         infoRango.setMinHeight(13);
 
-        getChildren().addAll(manoLabel, filaEquity, barraEquity, cartasManual, filaRango, infoRango);
+        // Equity mínimo (EM) para seguir en la mano: solo en el modo de apuestas
+        etiquetaEM = new Label("EM");
+        etiquetaEM.setStyle("-fx-text-fill: #F0923A; -fx-font-weight: bold; -fx-font-size: 11px;");
+        equityMinimo = new TextField();
+        equityMinimo.setPromptText("EM %");
+        equityMinimo.setPrefWidth(52);
+        equityMinimo.setMaxWidth(52);
+        // Más bajo que el resto de cuadros para que el asiento no crezca
+        equityMinimo.setPadding(new Insets(1, 4, 1, 4));
+        equityMinimo.setPrefHeight(20);
+        equityMinimo.setMaxHeight(20);
+        etiquetaEM.setVisible(false);
+        etiquetaEM.setManaged(false);
+        equityMinimo.setVisible(false);
+        equityMinimo.setManaged(false);
+
+        HBox filaInfo = new HBox(4, etiquetaEM, equityMinimo, infoRango);
+        filaInfo.setAlignment(Pos.CENTER);
+
+        getChildren().addAll(manoLabel, filaEquity, barraEquity, cartasManual, filaRango, filaInfo);
         estiloCampo(cartasManual);
         estiloCampo(rangoTexto);
         estiloCampo(porcentaje);
-        for (TextField campo : new TextField[] { cartasManual, rangoTexto, porcentaje }) {
+        estiloCampo(equityMinimo);
+        for (TextField campo : new TextField[] { cartasManual, rangoTexto, porcentaje, equityMinimo }) {
             campo.disabledProperty().addListener((obs, antes, ahora) -> estiloCampo(campo));
         }
 
@@ -195,7 +243,7 @@ public class AsientoVista extends JugadorVista {
 
     private void estiloNombre() {
         nombreLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: "
-                + (esHero ? "#F2D16B" : "#FFFFFF") + ";");
+                + (esHero && !modoApuestas ? "#F2D16B" : "#FFFFFF") + ";");
     }
 
     private void estiloEquityNormal() {
@@ -206,16 +254,24 @@ public class AsientoVista extends JugadorVista {
     }
 
     private void estiloCampo(TextField campo) {
+        String borde = "";
+        if (modoApuestas && campo == equityMinimo) borde = BORDE_EM;
+        else if (modoApuestas && campo != cartasManual) borde = BORDE_RANGO;
+
         if (campo.isDisabled()) {
-            campo.setStyle(ESTILO_CAMPO_RANGO
+            campo.setStyle(ESTILO_CAMPO_RANGO + borde
                     + "-fx-control-inner-background: #414A45; -fx-text-fill: #AAB4AD;"
                     + "-fx-prompt-text-fill: #9AA69E; -fx-opacity: 0.75;");
         } else if (colorRango != null && campo == campoRangoEnUso()) {
-            campo.setStyle(ESTILO_CAMPO_RANGO
+            campo.setStyle(ESTILO_CAMPO_RANGO + borde
                     + "-fx-control-inner-background: " + colorRango + ";"
                     + "-fx-text-fill: #111111;");
+        } else if (colorEM != null && campo == equityMinimo) {
+            campo.setStyle(ESTILO_CAMPO_RANGO + borde
+                    + "-fx-control-inner-background: " + colorEM + ";"
+                    + "-fx-text-fill: #111111;");
         } else {
-            campo.setStyle(ESTILO_CAMPO_RANGO
+            campo.setStyle(ESTILO_CAMPO_RANGO + borde
                     + "-fx-control-inner-background: #E9F0E9; -fx-text-fill: #182B22;");
         }
     }
@@ -244,8 +300,9 @@ public class AsientoVista extends JugadorVista {
     public void setParticipacionFija(boolean fija) {
         if (fija) activo.setSelected(true);
         activo.setDisable(esHero || fija);
-        fold.setVisible(fija);
-        fold.setManaged(fija);
+        // En el modo de apuestas el Fold lo decide la aplicación: no hay botón
+        fold.setVisible(fija && !modoApuestas);
+        fold.setManaged(fija && !modoApuestas);
     }
 
     public void setOnFold(Runnable accion) {
@@ -268,7 +325,8 @@ public class AsientoVista extends JugadorVista {
             fold.setDisable(true);
             limpiarResultado();
             setManoTexto("FOLD");
-            setEquity("0,00 %", "Retirado: no disputa el bote; sus cartas siguen fuera del mazo.");
+            setEquity(modoApuestas ? "FOLD" : "0,00 %",
+                    "Retirado: no disputa el bote; sus cartas siguen fuera del mazo.");
             getCartasVista().forEach(CartaVista::quitarDestacado);
         }
     }
@@ -333,7 +391,18 @@ public class AsientoVista extends JugadorVista {
     }
 
     public void marcarGanador(boolean ganador) {
-        setStyle(ganador ? ESTILO_GANADOR : ESTILO_NORMAL);
+        this.ganador = ganador;
+        aplicarEstilo();
+    }
+
+    // Resalta al jugador que tiene que hablar (modo de apuestas)
+    public void marcarTurno(boolean turno) {
+        this.turno = turno;
+        aplicarEstilo();
+    }
+
+    private void aplicarEstilo() {
+        setStyle(ganador ? ESTILO_GANADOR : turno ? ESTILO_TURNO : ESTILO_NORMAL);
     }
 
     public void limpiarResultado() {
@@ -341,7 +410,57 @@ public class AsientoVista extends JugadorVista {
         actualizarBarraEquity(0);
         equity.setTooltip(null);
         manoLabel.setText("");
+        setAccion("");
         marcarGanador(false);
+    }
+
+
+    // =========================================================
+    // MODO DE APUESTAS (práctica 3)
+    // =========================================================
+
+    // Muestra la posición del jugador (Button, Small Blind...) en vez de su
+    // nombre, el cuadro de EM y la etiqueta de acción. Oculta el check "Jugando"
+    // y el botón Fold (en este modo el Fold lo decide la aplicación).
+    public void setModoApuestas(boolean apuestas, String posicion) {
+        modoApuestas = apuestas;
+        nombreLabel.setText(apuestas ? posicion : getIdJugador());
+        estiloNombre();
+
+        // Con la fila del EM el asiento crece: se compacta para que el board
+        // no tape el EM del asiento de arriba
+        setSpacing(apuestas ? 1 : 4);
+        setPadding(new Insets(apuestas ? 4 : 7));
+
+        // El botón Fold lo oculta setParticipacionFija
+        activo.setVisible(!apuestas);
+        activo.setManaged(!apuestas);
+        accion.setVisible(apuestas);
+        accion.setManaged(apuestas);
+        etiquetaEM.setVisible(apuestas);
+        etiquetaEM.setManaged(apuestas);
+        equityMinimo.setVisible(apuestas);
+        equityMinimo.setManaged(apuestas);
+
+        setAccion("");
+        mostrarEM(null);
+        estiloCampo(rangoTexto);
+        estiloCampo(porcentaje);
+    }
+
+    public String getEMTexto() {
+        return equityMinimo.getText();
+    }
+
+    // Fondo del cuadro de EM: verde si el equity llega al EM, rojo si no (null = sin color)
+    public void mostrarEM(String colorFondo) {
+        colorEM = colorFondo;
+        estiloCampo(equityMinimo);
+    }
+
+    // Última acción del jugador en la calle actual: "Bet 3 BB (automático)", "Call 3 BB", "Fold"...
+    public void setAccion(String texto) {
+        accion.setText(texto == null ? "" : texto);
     }
 
 

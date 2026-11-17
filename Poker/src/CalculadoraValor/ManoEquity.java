@@ -98,8 +98,9 @@ public final class ManoEquity {
         if (indice < 0 || indice >= JUGADORES) throw new IllegalArgumentException("Asiento no válido.");
         
         if (retirados[indice]) throw new IllegalStateException("El jugador ya ha hecho Fold.");
-        
-        if (!puedeAvanzar()) throw new IllegalStateException("La mano ya ha finalizado.");
+
+        // En el river también se puede hacer Fold (apuestas de la práctica 3)
+        if (getJugadoresEnMano().size() <= 1) throw new IllegalStateException("La mano ya ha finalizado.");
         
         retirados[indice] = true;
     }
