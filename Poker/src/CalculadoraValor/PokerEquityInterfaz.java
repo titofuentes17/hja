@@ -49,6 +49,9 @@ import javafx.util.Duration;
 //    un equity mínimo (EM). En cada turno el jugador puede hacer Bet manual o
 //    dejar que la aplicación decida (Bet/Call si su mano está en el rango y su
 //    equity llega al EM; si no, Fold).
+//  - Modo "Decisión en el Turn" (práctica 3, apartado 2.2): hero contra un villano
+//    al que se le da un rango. Se calculan las outs de hero contra cada mano del
+//    rango y se compara su media con el EM de hero (Call / Fold).
 
 
 public class PokerEquityInterfaz extends Application {
@@ -281,7 +284,7 @@ public class PokerEquityInterfaz extends Application {
 
         modoBoard.setOnAction(e -> {
             boolean manual = modoBoard.getValue().contains("manual");
-            calleBoard.setDisable(manual || esManoPorCalles());
+            calleBoard.setDisable(manual || esManoPorCalles() || esTurn());
             boardManual.setDisable(!manual);
         });
 
@@ -291,7 +294,8 @@ public class PokerEquityInterfaz extends Application {
         botonRepartir.setStyle("-fx-background-color: #C9A227;" + "-fx-text-fill: #111111;" + "-fx-font-weight: bold;"
                 + "-fx-font-size: 13px;" + "-fx-background-radius: 8;" + "-fx-padding: 8 22 8 22;" + "-fx-cursor: hand;");
         botonRepartir.setOnAction(e -> {
-            if (esManoPorCalles()) nuevaMano();
+            if (esTurn()) decidirTurn();
+            else if (esManoPorCalles()) nuevaMano();
             else repartir();
         });
 
@@ -303,7 +307,7 @@ public class PokerEquityInterfaz extends Application {
 
         modoAnalisis = new ComboBox<>();
         modoAnalisis.getItems().addAll("Mano por calles (6 jugadores)", "Escenario aislado",
-                "Apuestas NLHE (6 jugadores)");
+                "Apuestas NLHE (6 jugadores)", "Decisión en el Turn (hero vs villano)");
         modoAnalisis.getSelectionModel().selectFirst();
         modoAnalisis.setMaxWidth(Double.MAX_VALUE);
         modoAnalisis.setOnAction(e -> {
@@ -314,8 +318,12 @@ public class PokerEquityInterfaz extends Application {
             ronda = null;
             limpiarDecisiones();
             for (AsientoVista asiento : mesa.getAsientos()) {
-                asiento.setModoApuestas(esApuestas(), RondaApuestas.POSICIONES[asiento.getIndice()]);
+                // En el Turn solo juegan hero (asiento 0) y el villano: el resto se oculta
+                boolean visible = !esTurn() || asiento.getIndice() == 0 || asiento.getIndice() == VILLANO;
+                asiento.setVisible(visible);
+                asiento.setModoApuestas(esApuestas() || esTurn(), nombreAsientoDecision(asiento.getIndice()));
             }
+            calleBoard.setDisable(esManoPorCalles() || esTurn() || modoBoard.getValue().contains("manual"));
             mesa.reiniciarTodo();
             actualizarRangos();
             calleActual.setText("Sin mano iniciada");
@@ -458,12 +466,17 @@ public class PokerEquityInterfaz extends Application {
         return modoAnalisis != null && modoAnalisis.getSelectionModel().getSelectedIndex() == 2;
     }
 
+    private boolean esTurn() {
+        return modoAnalisis != null && modoAnalisis.getSelectionModel().getSelectedIndex() == 3;
+    }
+
     private boolean esOmaha() {
         return modalidad != null && "Omaha".equals(modalidad.getValue());
     }
 
     private String textoSubtitulo() {
         if (esApuestas()) return "NLHE  /  APUESTAS Y TOMA DE DECISIONES";
+        if (esTurn()) return "NLHE  /  DECISIÓN EN EL TURN: HERO VS RANGO";
         return (esOmaha() ? "OMAHA" : "TEXAS HOLD'EM") + "  /  ANALISIS DE PROBABILIDADES";
     }
 
@@ -495,11 +508,12 @@ public class PokerEquityInterfaz extends Application {
         configuracion.setDisable(ocupado);
         mesa.setDisable(ocupado);
         modoAnalisis.setDisable(ocupado || esOmaha());
-        modalidad.setDisable(ocupado || esApuestas());
+        modalidad.setDisable(ocupado || esApuestas() || esTurn());
         botonRepartir.setDisable(ocupado);
-        botonRepartir.setText(porCalles ? "Nueva mano" : "Repartir escenario y calcular");
+        botonRepartir.setText(esTurn() ? "Repartir y decidir"
+                : porCalles ? "Nueva mano" : "Repartir escenario y calcular");
         equityRango.setDisable(porCalles);
-        calleBoard.setDisable(porCalles || modoBoard.getValue().contains("manual"));
+        calleBoard.setDisable(porCalles || esTurn() || modoBoard.getValue().contains("manual"));
         botonSiguiente.setVisible(porCalles);
         botonSiguiente.setManaged(porCalles);
         // En el modo de apuestas no se pasa de calle hasta que han hablado todos
@@ -673,7 +687,7 @@ public class PokerEquityInterfaz extends Application {
         }
 
         for (AsientoVista asiento : mesa.getAsientos()) {
-            asiento.mostrarEM(esApuestas() ? colorEMDecision[asiento.getIndice()] : null);
+            asiento.mostrarEM(esApuestas() || esTurn() ? colorEMDecision[asiento.getIndice()] : null);
             if (!asiento.tieneRango()) {
                 asiento.mostrarRango(esApuestas() ? colorRangoDecision[asiento.getIndice()] : null, "", null);
                 continue;
@@ -1082,6 +1096,132 @@ public class PokerEquityInterfaz extends Application {
                 + "Equity calculada: " + resultado.iteraciones + " repartos evaluados."
                 + (manoActual != null && !manoActual.puedeAvanzar() ? " Mano finalizada." : ""), false);
     }
+
+    // =========================================================
+    // DECISIÓN EN EL TURN (práctica 3, apartado 2.2)
+    // =========================================================
+
+    // Asiento del villano (el de arriba); hero es el asiento 0
+    private static final int VILLANO = 3;
+
+    private String nombreAsientoDecision(int indice) {
+        if (esTurn()) return indice == 0 ? "Hero" : indice == VILLANO ? "Villano" : "";
+        return RondaApuestas.POSICIONES[indice];
+    }
+
+    // Reparte hero y el board del Turn (aleatorios o manuales), deja las cartas del
+    // villano boca abajo y decide Call o Fold con la media de outs contra su rango.
+    private void decidirTurn() {
+        if (ocupado) return;
+        AsientoVista hero = mesa.getAsiento(0);
+        AsientoVista villano = mesa.getAsiento(VILLANO);
+
+        final List<Carta> cartasHero;
+        final List<Carta> board;
+        final Rango rango;
+        final double em;
+        final DecisionTurn.Resultado resultado;
+        try {
+            Set<Integer> usadas = new HashSet<>();
+
+            // Board del Turn: 4 cartas
+            if (modoBoard.getValue().contains("manual")) {
+                board = Cartas.parsear(boardManual.getText());
+                if (board.size() != 4) {
+                    throw new IllegalArgumentException("El board del Turn debe tener 4 cartas (has escrito "
+                            + board.size() + ").");
+                }
+                for (Carta c : board) usadas.add(Cartas.id(c));
+            } else {
+                board = new ArrayList<>();
+            }
+
+            // Cartas de hero
+            String texto = hero.getCartasTexto();
+            if (modoCartas.getValue().contains("manual") && texto != null && !texto.isBlank()) {
+                cartasHero = Cartas.parsear(texto);
+                if (cartasHero.size() != 2) {
+                    throw new IllegalArgumentException("Hero: escribe exactamente 2 cartas (por ejemplo AhKd).");
+                }
+                for (Carta c : cartasHero) {
+                    if (!usadas.add(Cartas.id(c))) {
+                        throw new IllegalArgumentException("La carta " + c + " está repetida (hero y board).");
+                    }
+                }
+            } else {
+                cartasHero = new ArrayList<>();
+                cartasHero.add(robarCarta(usadas));
+                cartasHero.add(robarCarta(usadas));
+            }
+            while (board.size() < 4) board.add(robarCarta(usadas));
+
+            // Rango del villano y EM de hero
+            try {
+                rango = obtenerRango(villano);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Villano: rango no válido. " + e.getMessage());
+            }
+            if (rango == null) throw new IllegalArgumentException("Escribe el rango del villano (texto o Top %).");
+            try {
+                em = obtenerEM(hero);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Hero: " + e.getMessage());
+            }
+            resultado = DecisionTurn.evaluar(cartasHero, board, rango, em);
+        } catch (IllegalArgumentException e) {
+            mostrarEstado(e.getMessage(), true);
+            return;
+        }
+
+        empezarOperacion();
+        manoActual = null;
+        manosRepartidas = null;
+        Arrays.fill(colorEMDecision, null);
+        Arrays.fill(colorRangoDecision, null);
+        mesa.reiniciarTodo();
+        actualizarRangos();
+        calleActual.setText("Escenario: TURN");
+        mostrarEstado("Repartiendo...", false);
+
+        long retraso = 0;
+        final long intervalo = 750;
+        for (int i = 0; i < 2; i++) {
+            final int indice = i;
+            programar(retraso, () -> crupier.repartirCarta(hero.getCartaVista(indice), cartasHero.get(indice), 1.0));
+            retraso += intervalo;
+        }
+        for (int i = 0; i < 4; i++) {
+            final int indice = i;
+            programar(retraso, () -> crupier.repartirCarta(mesa.getCartaBoard(indice), board.get(indice)));
+            retraso += intervalo;
+        }
+
+        // La mano del villano no se muestra: sus dos cartas quedan boca abajo
+        programar(retraso, () -> {
+            for (int i = 0; i < 2; i++) {
+                CartaVista oculta = villano.getCartaVista(i);
+                oculta.mostrarReverso();
+                oculta.setVisible(true);
+            }
+        });
+
+        programar(retraso + 400, () -> {
+            String enRango = String.format("%.2f", resultado.mediaOuts).replace('.', ',');
+            hero.setEquity(enRango + " outs", DecisionTurn.resumen(resultado));
+            hero.setManoTexto(new Jugador("Hero", new ArrayList<>(cartasHero), new ArrayList<>(board)).getNombreMano());
+            hero.setAccion(resultado.call ? "Call" : "Fold");
+
+            // EM: verde si la media de outs lo alcanza, rojo si no
+            colorEMDecision[0] = resultado.call ? FONDO_DENTRO : FONDO_FUERA;
+            actualizarRangos();
+
+            mostrarEstado("Hero " + (resultado.call ? "hace CALL" : "hace FOLD") + ": media de " + enRango
+                    + " outs " + (resultado.call ? ">= " : "< ") + "EM " + String.format("%.2f", em).replace('.', ',')
+                    + ".\n" + DecisionTurn.resumen(resultado), false);
+            terminarOperacion();
+        });
+    }
+
 
     // =========================================================
     // APUESTAS (práctica 3, apartado 2.1)
