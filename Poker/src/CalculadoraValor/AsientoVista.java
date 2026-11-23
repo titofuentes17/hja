@@ -71,6 +71,7 @@ public class AsientoVista extends JugadorVista {
     private final TextField porcentaje;
     private final Label infoRango;
     private boolean omaha;
+    private boolean rangoEnOmaha;   // Omaha con rango (villano del Turn, apartado 2.3)
 
     // Modo de apuestas (práctica 3)
     private boolean modoApuestas;
@@ -198,6 +199,9 @@ public class AsientoVista extends JugadorVista {
         equityMinimo.setPromptText("EM %");
         equityMinimo.setPrefWidth(52);
         equityMinimo.setMaxWidth(52);
+        // Si el texto de al lado es largo, se recorta ese texto y no el EM
+        equityMinimo.setMinWidth(52);
+        etiquetaEM.setMinWidth(Region.USE_PREF_SIZE);
         // Más bajo que el resto de cuadros para que el asiento no crezca
         equityMinimo.setPadding(new Insets(1, 4, 1, 4));
         equityMinimo.setPrefHeight(20);
@@ -344,20 +348,29 @@ public class AsientoVista extends JugadorVista {
     // el asiento). Los rangos están escritos para manos de 2 cartas, así que en
     // Omaha se vacían y se deshabilitan.
     public void setModalidadOmaha(boolean omaha) {
+        setModalidadOmaha(omaha, false);
+    }
+
+    // conRango: en la decisión del Turn de Omaha (práctica 3, apartado 2.3) el
+    // villano sí tiene rango, escrito igual que en Hold'em (AA, QQ, 25 %...).
+    public void setModalidadOmaha(boolean omaha, boolean conRango) {
         this.omaha = omaha;
+        this.rangoEnOmaha = omaha && conRango;
         if (omaha) {
             setNumeroCartas(4, 44, 59, -9);
             cartasManual.setPromptText("Cartas: AhKdQsJc");
-            limpiarRango();
-            rangoTexto.setDisable(true);
-            porcentaje.setDisable(true);
+            if (!conRango) {
+                limpiarRango();
+                rangoTexto.setDisable(true);
+                porcentaje.setDisable(true);
+            }
         } else {
             setNumeroCartas(2, 66, 88, 4);
             cartasManual.setPromptText("Cartas: AhKd");
             rangoTexto.setDisable(false);
             porcentaje.setDisable(false);
         }
-        infoRango.setText(omaha ? "Rangos solo en Hold'em" : "");
+        infoRango.setText(omaha && !rangoEnOmaha ? "Rangos solo en Hold'em" : "");
         cartasManual.clear();
     }
 
@@ -505,7 +518,7 @@ public class AsientoVista extends JugadorVista {
         estiloCampo(rangoTexto);
         estiloCampo(porcentaje);
 
-        infoRango.setText(omaha ? "Rangos solo en Hold'em" : (info == null ? "" : info));
+        infoRango.setText(omaha && !rangoEnOmaha ? "Rangos solo en Hold'em" : (info == null ? "" : info));
 
         Tooltip tip = detalle == null || detalle.isEmpty() ? null : new Tooltip(detalle);
         rangoTexto.setTooltip(tip);

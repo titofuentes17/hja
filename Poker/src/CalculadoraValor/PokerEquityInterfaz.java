@@ -52,6 +52,8 @@ import javafx.util.Duration;
 //  - Modo "Decisión en el Turn" (práctica 3, apartado 2.2): hero contra un villano
 //    al que se le da un rango. Se calculan las outs de hero contra cada mano del
 //    rango y se compara su media con el EM de hero (Call / Fold).
+//    Con la modalidad Omaha (apartado 2.3) hero y villano tienen 4 cartas y
+//    cada mano usa exactamente 2 propias y 3 comunes.
 
 
 public class PokerEquityInterfaz extends Application {
@@ -312,6 +314,8 @@ public class PokerEquityInterfaz extends Application {
         modoAnalisis.setMaxWidth(Double.MAX_VALUE);
         modoAnalisis.setOnAction(e -> {
             invalidarOperacion();
+            // Al salir del Turn de Omaha se vuelve a Texas Hold'em
+            if (esOmaha() && !esTurn()) modalidad.setValue("Texas Hold'em");
             subtitulo.setText(textoSubtitulo());
             manoActual = null;
             manosRepartidas = null;
@@ -476,7 +480,7 @@ public class PokerEquityInterfaz extends Application {
 
     private String textoSubtitulo() {
         if (esApuestas()) return "NLHE  /  APUESTAS Y TOMA DE DECISIONES";
-        if (esTurn()) return "NLHE  /  DECISIÓN EN EL TURN: HERO VS RANGO";
+        if (esTurn()) return (esOmaha() ? "OMAHA" : "NLHE") + "  /  DECISIÓN EN EL TURN: HERO VS RANGO";
         return (esOmaha() ? "OMAHA" : "TEXAS HOLD'EM") + "  /  ANALISIS DE PROBABILIDADES";
     }
 
@@ -486,13 +490,15 @@ public class PokerEquityInterfaz extends Application {
         invalidarOperacion();
         boolean omaha = esOmaha();
         subtitulo.setText(textoSubtitulo());
-        if (omaha) {
+        // La decisión en el Turn también tiene versión Omaha (práctica 3, apartado 2.3)
+        if (omaha && !esTurn()) {
             modoAnalisis.getSelectionModel().selectFirst();
         }
         manoActual = null;
         manosRepartidas = null;
         for (AsientoVista asiento : mesa.getAsientos()) {
-            asiento.setModalidadOmaha(omaha);
+            // En el Turn de Omaha el villano conserva su rango
+            asiento.setModalidadOmaha(omaha, esTurn() && asiento.getIndice() == VILLANO);
         }
         mesa.reiniciarTodo();
         actualizarRangos();
@@ -507,8 +513,8 @@ public class PokerEquityInterfaz extends Application {
         boolean porCalles = esManoPorCalles();
         configuracion.setDisable(ocupado);
         mesa.setDisable(ocupado);
-        modoAnalisis.setDisable(ocupado || esOmaha());
-        modalidad.setDisable(ocupado || esApuestas() || esTurn());
+        modoAnalisis.setDisable(ocupado || (esOmaha() && !esTurn()));
+        modalidad.setDisable(ocupado || esApuestas());
         botonRepartir.setDisable(ocupado);
         botonRepartir.setText(esTurn() ? "Repartir y decidir"
                 : porCalles ? "Nueva mano" : "Repartir escenario y calcular");
@@ -1109,12 +1115,39 @@ public class PokerEquityInterfaz extends Application {
         return RondaApuestas.POSICIONES[indice];
     }
 
+    // Cartas escritas a mano en un asiento del modo Turn (null si no hay ninguna).
+    // Comprueba cuántas son y que no se repitan con las ya usadas, y las añade a 'usadas'.
+    private List<Carta> cartasManualesTurn(AsientoVista asiento, String nombre, int cuantas, Set<Integer> usadas) {
+        String texto = asiento.getCartasTexto();
+        if (!modoCartas.getValue().contains("manual") || texto == null || texto.isBlank()) return null;
+
+        List<Carta> cartas;
+        try {
+            cartas = Cartas.parsear(texto);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(nombre + ": " + e.getMessage());
+        }
+        if (cartas.size() != cuantas) {
+            throw new IllegalArgumentException(nombre + ": escribe exactamente " + cuantas
+                    + " cartas (por ejemplo " + (cuantas == 4 ? "AhKdQsJc" : "AhKd") + ").");
+        }
+        for (Carta c : cartas) {
+            if (!usadas.add(Cartas.id(c))) {
+                throw new IllegalArgumentException("La carta " + c + " está repetida (hero, villano o board).");
+            }
+        }
+        return cartas;
+    }
+
     // Reparte hero y el board del Turn (aleatorios o manuales), deja las cartas del
     // villano boca abajo y decide Call o Fold con la media de outs contra su rango.
     private void decidirTurn() {
         if (ocupado) return;
         AsientoVista hero = mesa.getAsiento(0);
         AsientoVista villano = mesa.getAsiento(VILLANO);
+        // Omaha (apartado 2.3): 4 cartas por jugador, 2 propias + 3 comunes
+        final boolean omaha = esOmaha();
+        final int cartasPorJugador = omaha ? 4 : 2;
 
         final List<Carta> cartasHero;
         final List<Carta> board;
@@ -1136,22 +1169,17 @@ public class PokerEquityInterfaz extends Application {
                 board = new ArrayList<>();
             }
 
-            // Cartas de hero
-            String texto = hero.getCartasTexto();
-            if (modoCartas.getValue().contains("manual") && texto != null && !texto.isBlank()) {
-                cartasHero = Cartas.parsear(texto);
-                if (cartasHero.size() != 2) {
-                    throw new IllegalArgumentException("Hero: escribe exactamente 2 cartas (por ejemplo AhKd).");
-                }
-                for (Carta c : cartasHero) {
-                    if (!usadas.add(Cartas.id(c))) {
-                        throw new IllegalArgumentException("La carta " + c + " está repetida (hero y board).");
-                    }
-                }
+            // Cartas manuales de hero y del villano (la mesa es configurable). Las del
+            // villano no se muestran ni entran en el cálculo, porque hero no sabe cuál
+            // es su mano, pero se apartan para que no salgan en el reparto aleatorio.
+            List<Carta> manualesHero = cartasManualesTurn(hero, "Hero", cartasPorJugador, usadas);
+            cartasManualesTurn(villano, "Villano", cartasPorJugador, usadas);
+
+            if (manualesHero != null) {
+                cartasHero = manualesHero;
             } else {
                 cartasHero = new ArrayList<>();
-                cartasHero.add(robarCarta(usadas));
-                cartasHero.add(robarCarta(usadas));
+                for (int i = 0; i < cartasPorJugador; i++) cartasHero.add(robarCarta(usadas));
             }
             while (board.size() < 4) board.add(robarCarta(usadas));
 
@@ -1167,7 +1195,8 @@ public class PokerEquityInterfaz extends Application {
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Hero: " + e.getMessage());
             }
-            resultado = DecisionTurn.evaluar(cartasHero, board, rango, em);
+            resultado = omaha ? DecisionTurn.evaluarOmaha(cartasHero, board, rango, em)
+                    : DecisionTurn.evaluar(cartasHero, board, rango, em);
         } catch (IllegalArgumentException e) {
             mostrarEstado(e.getMessage(), true);
             return;
@@ -1185,10 +1214,12 @@ public class PokerEquityInterfaz extends Application {
 
         long retraso = 0;
         final long intervalo = 750;
-        for (int i = 0; i < 2; i++) {
+        // En Omaha se reparten el doble de cartas al doble de velocidad (como en la P2)
+        final double factor = omaha ? 0.5 : 1.0;
+        for (int i = 0; i < cartasPorJugador; i++) {
             final int indice = i;
-            programar(retraso, () -> crupier.repartirCarta(hero.getCartaVista(indice), cartasHero.get(indice), 1.0));
-            retraso += intervalo;
+            programar(retraso, () -> crupier.repartirCarta(hero.getCartaVista(indice), cartasHero.get(indice), factor));
+            retraso += Math.round(intervalo * factor);
         }
         for (int i = 0; i < 4; i++) {
             final int indice = i;
@@ -1196,9 +1227,9 @@ public class PokerEquityInterfaz extends Application {
             retraso += intervalo;
         }
 
-        // La mano del villano no se muestra: sus dos cartas quedan boca abajo
+        // La mano del villano no se muestra: sus cartas quedan boca abajo
         programar(retraso, () -> {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < cartasPorJugador; i++) {
                 CartaVista oculta = villano.getCartaVista(i);
                 oculta.mostrarReverso();
                 oculta.setVisible(true);
@@ -1207,17 +1238,20 @@ public class PokerEquityInterfaz extends Application {
 
         programar(retraso + 400, () -> {
             String enRango = String.format("%.2f", resultado.mediaOuts).replace('.', ',');
-            hero.setEquity(enRango + " outs", DecisionTurn.resumen(resultado));
-            hero.setManoTexto(new Jugador("Hero", new ArrayList<>(cartasHero), new ArrayList<>(board)).getNombreMano());
+            String resumen = omaha ? DecisionTurn.resumenOmaha(resultado) : DecisionTurn.resumen(resultado);
+            hero.setEquity(enRango + " outs", resumen);
+            hero.setManoTexto(omaha
+                    ? new JugadorOmaha("Hero", new ArrayList<>(cartasHero), new ArrayList<>(board)).getNombreMano()
+                    : new Jugador("Hero", new ArrayList<>(cartasHero), new ArrayList<>(board)).getNombreMano());
             hero.setAccion(resultado.call ? "Call" : "Fold");
 
-            // EM: verde si la media de outs lo alcanza, rojo si no
+            // EM: verde si la media de outs es mayor que el EM, rojo si no
             colorEMDecision[0] = resultado.call ? FONDO_DENTRO : FONDO_FUERA;
             actualizarRangos();
 
             mostrarEstado("Hero " + (resultado.call ? "hace CALL" : "hace FOLD") + ": media de " + enRango
-                    + " outs " + (resultado.call ? ">= " : "< ") + "EM " + String.format("%.2f", em).replace('.', ',')
-                    + ".\n" + DecisionTurn.resumen(resultado), false);
+                    + " outs " + (resultado.call ? "> " : "<= ") + "EM " + String.format("%.2f", em).replace('.', ',')
+                    + ".\n" + resumen, false);
             terminarOperacion();
         });
     }
