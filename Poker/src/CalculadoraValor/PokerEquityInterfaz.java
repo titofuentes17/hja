@@ -1500,7 +1500,7 @@ public class PokerEquityInterfaz extends Application {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("EM no válido: \"" + texto.trim() + "\"");
         }
-        if (valor < 0 || valor > 100) throw new IllegalArgumentException("el EM debe estar entre 0 y 100.");
+        if (!Double.isFinite(valor) || valor < 0 || valor > 100) throw new IllegalArgumentException("el EM debe estar entre 0 y 100.");
         return valor;
     }
 
